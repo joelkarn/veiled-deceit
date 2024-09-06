@@ -16,8 +16,7 @@ git clone git@github.com:joelkarn/veiled-deceit.git
 Navigate to the cloned project directory and open the `project.godot` file with Godot 4.3. This will open the project in the Godot editor:
 ```bash
 cd veiled-deceit
-# Assuming Godot is added to your system's PATH
-godot project.godot
+open project.godot
 ```
 
 
