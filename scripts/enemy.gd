@@ -5,8 +5,15 @@ extends CharacterBody3D
 
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D
 
+var original_material: StandardMaterial3D
+var is_flashing := false
+
 func _ready():
 	health = max_health
+	# Create a unique material for this enemy
+	original_material = StandardMaterial3D.new()
+	original_material.albedo_color = Color.WHITE
+	mesh_instance.material_override = original_material
 
 func take_damage(amount: float) -> void:
 	health -= amount
@@ -20,13 +27,17 @@ func take_damage(amount: float) -> void:
 		die()
 
 func flash_damage() -> void:
-	# Create a brief red flash effect
-	var material = mesh_instance.get_active_material(0)
-	if material:
-		var original_color = material.albedo_color
-		material.albedo_color = Color.RED
-		await get_tree().create_timer(0.1).timeout
-		material.albedo_color = original_color
+	# Prevent overlapping flashes
+	if is_flashing:
+		return
+	
+	is_flashing = true
+	# Flash red
+	original_material.albedo_color = Color.RED
+	await get_tree().create_timer(0.15).timeout
+	# Flash back to white
+	original_material.albedo_color = Color.WHITE
+	is_flashing = false
 
 func die() -> void:
 	print("Enemy died!")

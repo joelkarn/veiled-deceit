@@ -17,24 +17,24 @@ var init_jump_dir := Vector2.ZERO
 
 var is_jumping := false
 
-const MELEE_COOLDOWN_SECONDS := 0.5
-const MELEE_WINDOW_SECONDS := 0.1
-const MELEE_DAMAGE := 10
+const AUTO_ATTACK_COOLDOWN := 0.5
+const AUTO_ATTACK_WINDOW_SECONDS := 0.1
+const AUTO_ATTACK_DAMAGE := 10
 # Local offset of the hitbox relative to the player (in front, chest height)
 const MELEE_OFFSET := Vector3(0.0, 1.0, -1.2)
 # Size of the hitbox (BoxShape3D): width (X), height (Y), depth (Z forward)
 const MELEE_BOX_SIZE := Vector3(1.8, 1.2, 1.6)
 
-var melee_on_cooldown := false
+var auto_attack_on_cooldown := false
 var melee_area: Area3D
 var melee_shape: CollisionShape3D
-var melee_active := false
+var auto_attack_active := false
 var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
 
 # --------------------------
 # Debugging (hitbox visual)
 # --------------------------
-@export var show_melee_debug := true
+@export var show_melee_debug := false
 var melee_debug_mesh: MeshInstance3D
 var melee_debug_mat_idle: StandardMaterial3D
 var melee_debug_mat_active: StandardMaterial3D
@@ -49,13 +49,16 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		# Rotate player (horizontal)
 		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
-		# Rotate only visuals so player model doesn't rotate when standing still
-		visuals.rotate_y(deg_to_rad(event.relative.x * sens_horizontal))
-		# Rotate camera (vertical)
 		camera_mount.rotate_x(deg_to_rad(-event.relative.y * sens_vertical))
+		# TODO: decide what to do here, it's more obvious where player is looking
+		# without the visuals.rotate...
+		# Rotate only visuals so player model doesn't rotate when standing still
+		#visuals.rotate_y(deg_to_rad(event.relative.x * sens_horizontal))
+		# Rotate camera (vertical)
+		
 	
 	if event.is_action_pressed("attack"):
-		attack()
+		auto_attack()
 
 func _physics_process(delta: float) -> void:
 	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107)
@@ -176,15 +179,15 @@ func _enable_melee_area(enable: bool) -> void:
 # ----------------------------
 # Melee attack flow
 # ----------------------------
-func attack() -> void:
-	if melee_active:
+func auto_attack() -> void:
+	if auto_attack_active:
 		return
 
-	if melee_on_cooldown:
+	if auto_attack_on_cooldown:
 		return
 
-	melee_active = true
-	melee_on_cooldown = true
+	auto_attack_active = true
+	auto_attack_on_cooldown = true
 	already_hit.clear()
 
 	if animation_player and animation_player.has_animation("attack"):
@@ -192,18 +195,18 @@ func attack() -> void:
 
 	# Enable hitbox for the short active window
 	_enable_melee_area(true)
-	await get_tree().create_timer(MELEE_WINDOW_SECONDS).timeout
+	await get_tree().create_timer(AUTO_ATTACK_WINDOW_SECONDS).timeout
 	_enable_melee_area(false)
 
-	melee_active = false
+	auto_attack_active = false
 
 	# Cooldown timer before next attack allowed
-	await get_tree().create_timer(MELEE_COOLDOWN_SECONDS).timeout
-	melee_on_cooldown = false
+	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
+	auto_attack_on_cooldown = false
 
 # Called when a body enters the hitbox during the active window
 func _on_melee_area_body_entered(body: Node) -> void:
-	if not melee_active:
+	if not auto_attack_active:
 		return
 
 	if already_hit.has(body):
@@ -212,7 +215,7 @@ func _on_melee_area_body_entered(body: Node) -> void:
 	already_hit[body] = true
 
 	if body.has_method("take_damage"):
-		body.take_damage(MELEE_DAMAGE)
+		body.take_damage(AUTO_ATTACK_DAMAGE)
 
 # ----------------------------
 # Debug mesh for the hitbox
@@ -251,11 +254,11 @@ func _update_melee_debug_visual(active: bool) -> void:
 	if melee_debug_mesh == null:
 		return
 
-	if not show_melee_debug:
-		melee_debug_mesh.visible = false
-		return
+	# Always base visibility purely on this one flag
+	melee_debug_mesh.visible = show_melee_debug
 
-	melee_debug_mesh.visible = true
+	if not show_melee_debug:
+		return
 
 	if active:
 		melee_debug_mesh.material_override = melee_debug_mat_active
