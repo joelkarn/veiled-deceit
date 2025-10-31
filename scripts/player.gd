@@ -49,20 +49,31 @@ var melee_debug_mesh: MeshInstance3D
 var melee_debug_mat_idle: StandardMaterial3D
 var melee_debug_mat_active: StandardMaterial3D
 
+var ui_manager: Node
+
 func _ready() -> void:
 	health = max_health
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Mouse mode is handled by UI manager
 	_pitch = camera_mount.rotation.x
 	
 	# Set camera FOV to reduce fish-eye effect
 	if camera:
 		camera.fov = fov
 	
+	# Get UI manager reference
+	ui_manager = get_node_or_null("/root/Node3D/UIManager")
+	if ui_manager == null:
+		ui_manager = get_node_or_null("../UIManager")
+	
 	_create_melee_area()
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
 
 func _input(event: InputEvent) -> void:
+	# Don't process input if menu is open
+	if ui_manager and ui_manager.is_menu_active():
+		return
+	
 	if event is InputEventMouseMotion:
 		# Rotate player (horizontal)
 		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
@@ -85,6 +96,21 @@ func _input(event: InputEvent) -> void:
 		auto_attack()
 
 func _physics_process(delta: float) -> void:
+	# Don't process movement if menu is open
+	if ui_manager and ui_manager.is_menu_active():
+		# Stop animation and movement when menu is open
+		if animation_player and animation_player.current_animation != "idle":
+			animation_player.play("idle")
+		# Just apply gravity and stop horizontal movement
+		if not is_on_floor():
+			velocity.y += CUSTOM_GRAVITY * delta
+		else:
+			velocity.y = 0.0
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		return
+	
 	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107)
 	var input_dir: Vector2 = Input.get_vector("left", "right", "forward", "backward")
 	# relative to world so input is transformed to the world's basis

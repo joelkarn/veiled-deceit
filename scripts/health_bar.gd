@@ -120,7 +120,21 @@ func _get_ui_layer() -> Control:
 	if not main_scene:
 		return null
 	
-	# Look for existing CanvasLayer in the scene
+	# First, try to find the HealthBarsLayer CanvasLayer (for proper z-ordering)
+	var health_bars_layer = main_scene.find_child("HealthBarsLayer", true, false)
+	if health_bars_layer and health_bars_layer is CanvasLayer:
+		# Return the first child Control, or create one
+		for child in health_bars_layer.get_children():
+			if child is Control and child.name == "UILayer":
+				return child
+		# No Control found, create one
+		var ui_control = Control.new()
+		ui_control.name = "UILayer"
+		ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
+		health_bars_layer.add_child(ui_control)
+		return ui_control
+	
+	# Look for existing CanvasLayer in the scene (fallback)
 	var canvas_layer = main_scene.find_child("UI", false, false)
 	if not canvas_layer:
 		# Try to find any CanvasLayer
@@ -141,9 +155,10 @@ func _get_ui_layer() -> Control:
 		canvas_layer.add_child(ui_control)
 		return ui_control
 	
-	# No CanvasLayer found, create one at root
+	# No CanvasLayer found, create one at root with layer 1 for health bars
 	var new_canvas_layer = CanvasLayer.new()
 	new_canvas_layer.name = "UI"
+	new_canvas_layer.layer = 1
 	main_scene.add_child(new_canvas_layer)
 	
 	var ui_control = Control.new()
