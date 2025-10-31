@@ -3,23 +3,49 @@ extends CharacterBody3D
 @onready var camera_mount: Node3D = $camera_mount
 @onready var animation_player: AnimationPlayer = $visuals/mixamo_base/AnimationPlayer
 @onready var visuals: Node3D = $visuals
+@onready var camera: Camera3D = $camera_mount/Camera3D
 
-const SPEED = 5.0
-const CUSTOM_GRAVITY = -30.0
-const JUMP_VELOCITY = 10.0
+const SPEED := 7.0
+const CUSTOM_GRAVITY := -45.0
+const JUMP_VELOCITY := 13.0
 
-@export var sens_horizontal = 0.1
-@export var sens_vertical = 0.1
+@export var sens_horizontal := 0.1
+@export var sens_vertical := 0.1
 
-var init_jump_input = Vector2.ZERO
-var init_jump_dir = Vector2.ZERO
+var init_jump_input := Vector2.ZERO
+var init_jump_dir := Vector2.ZERO
 
-var is_jumping = false
+var is_jumping := false
 
-func _ready():
+const MELEE_COOLDOWN_SECONDS := 0.5
+const MELEE_WINDOW_SECONDS := 0.1
+const MELEE_DAMAGE := 10
+# Local offset of the hitbox relative to the player (in front, chest height)
+const MELEE_OFFSET := Vector3(0.0, 1.0, -1.2)
+# Size of the hitbox (BoxShape3D): width (X), height (Y), depth (Z forward)
+const MELEE_BOX_SIZE := Vector3(1.8, 1.2, 1.6)
+
+var melee_on_cooldown := false
+var melee_area: Area3D
+var melee_shape: CollisionShape3D
+var melee_active := false
+var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
+
+# --------------------------
+# Debugging (hitbox visual)
+# --------------------------
+@export var show_melee_debug := true
+var melee_debug_mesh: MeshInstance3D
+var melee_debug_mat_idle: StandardMaterial3D
+var melee_debug_mat_active: StandardMaterial3D
+
+func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_create_melee_area()
+	_create_melee_debug_mesh()
+	_update_melee_debug_visual(false)
 
-func _input(event):
+func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		# Rotate player (horizontal)
 		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
@@ -27,84 +53,211 @@ func _input(event):
 		visuals.rotate_y(deg_to_rad(event.relative.x * sens_horizontal))
 		# Rotate camera (vertical)
 		camera_mount.rotate_x(deg_to_rad(-event.relative.y * sens_vertical))
+	
+	if event.is_action_pressed("attack"):
+		attack()
 
 func _physics_process(delta: float) -> void:
-	var input_dir = Input.get_vector("left", "right", "forward", "backward")
-	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107)
+	var input_dir: Vector2 = Input.get_vector("left", "right", "forward", "backward")
+	# relative to world so input is transformed to the world's basis
+	var direction: Vector3 = (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y))
 
 	# In air, either falling or jumping
 	if not is_on_floor():
-		# Add gravity when not on floor
+		# Apply gravity only when in air
 		velocity.y += CUSTOM_GRAVITY * delta
 
 		if is_jumping:
 			handle_jumping(init_jump_input, direction, input_dir)
 		else:
-			handle_falling()
+			handle_falling(direction)
 		
 		move_and_slide()
 		return
 
 	# If on the floor, allow horizontal movement
-	if is_on_floor():
-		is_jumping = false
-		# Animate and set velocity
-		if direction != Vector3.ZERO:
-			if animation_player.current_animation != "running":
-				animation_player.play("running")
-			# Rotate visuals to face movement direction
-			visuals.look_at(position + direction)
-			
-			velocity.x = direction.x * SPEED
-			velocity.z = direction.z * SPEED
-		else:
-			if animation_player.current_animation != "idle":
-				animation_player.play("idle")
-			# Stop moving horizontally
-			velocity.x = 0
-			velocity.z = 0
+	is_jumping = false
+	# Animate and set velocity
+	if direction != Vector3.ZERO:
+		if animation_player and animation_player.current_animation != "running":
+			animation_player.play("running")
+		# Rotate visuals to face movement direction
+		visuals.look_at(position + direction)
+		
+		velocity.x = direction.x * SPEED
+		velocity.z = direction.z * SPEED
+	else:
+		if animation_player and animation_player.current_animation != "idle":
+			animation_player.play("idle")
+		# Stop moving horizontally
+		velocity.x = 0.0
+		velocity.z = 0.0
 
-		# Handle jump with initial conditions
-		if Input.is_action_just_pressed("ui_accept"):
-			is_jumping = true
-			velocity.y = JUMP_VELOCITY
-			init_jump_input = input_dir
-			init_jump_dir.x = direction.x
-			init_jump_dir.y = direction.z
-			
+	# Handle jump with initial conditions
+	if Input.is_action_just_pressed("ui_accept"):
+		is_jumping = true
+		velocity.y = JUMP_VELOCITY
+		init_jump_input = input_dir
+		init_jump_dir.x = direction.x
+		init_jump_dir.y = direction.z
 
 	move_and_slide()
 
-func handle_jumping(init_jump_input, direction, input_dir):
+func handle_jumping(initial_input: Vector2, direction: Vector3, input_dir: Vector2) -> void:
 	# Jump with no initial horizontal velocity
-	if init_jump_input == Vector2.ZERO:
+	if initial_input == Vector2.ZERO:
 		# If input in any direction, go slow
 		if direction != Vector3.ZERO:
 			velocity.x = direction.x * SPEED * 0.25
 			velocity.z = direction.z * SPEED * 0.25
-		
-		# If no input, go straight up and down
 		else:
-			velocity.x = 0
-			velocity.z = 0
-	
-	# Jump with initial horizontal velocity
+			# If no input, go straight up and down
+			velocity.x = 0.0
+			velocity.z = 0.0
 	else:
+		# Jump with initial horizontal velocity
 		# If input direction key is pressed, continue with SPEED
-		if input_dir == init_jump_input:
+		if input_dir == initial_input:
 			velocity.x = init_jump_dir.x * SPEED
 			velocity.z = init_jump_dir.y * SPEED
-		
-		# If opposite of input direction key is pressed, go slow
-		elif input_dir + init_jump_input == Vector2.ZERO:
-			velocity.x = init_jump_dir.x * SPEED * 0.25
-			velocity.z = init_jump_dir.y * SPEED * 0.25
-		
-		# If no key related to input direction is pressed, go medium slow
 		else:
-			velocity.x = init_jump_dir.x * SPEED * 0.5
-			velocity.z = init_jump_dir.y * SPEED * 0.5
+			# If opposite of input direction key is pressed, go slow
+			if input_dir + initial_input == Vector2.ZERO:
+				velocity.x = init_jump_dir.x * SPEED * 0.25
+				velocity.z = init_jump_dir.y * SPEED * 0.25
+			else:
+				# If no key related to input direction is pressed, go medium slow
+				velocity.x = init_jump_dir.x * SPEED * 0.5
+				velocity.z = init_jump_dir.y * SPEED * 0.5
 
-func handle_falling():
-	# we don't handle falling yet but here that code would go
-	return
+func handle_falling(direction) -> void:
+	# Placeholder for falling behavior
+	velocity.x = direction.x * SPEED * 0.5
+	velocity.z = direction.z * SPEED * 0.5
+
+# ----------------------------
+# Melee hitbox: Area3D setup
+# ----------------------------
+func _create_melee_area() -> void:
+	melee_area = Area3D.new()
+	melee_shape = CollisionShape3D.new()
+
+	var box := BoxShape3D.new()
+	box.size = MELEE_BOX_SIZE
+	melee_shape.shape = box
+
+	add_child(melee_area)
+	melee_area.add_child(melee_shape)
+
+	# Place it in front of the player; since it's a child, it follows rotation
+	melee_area.transform = Transform3D(Basis(), MELEE_OFFSET)
+
+	# Detect bodies only, keep off by default
+	melee_area.monitoring = false
+	melee_area.monitorable = false
+
+	# Optional: restrict to an "enemies" layer if you use layers
+	# melee_area.collision_mask = 1 << 3  # example: only layer 3
+
+	# Connect signal once
+	melee_area.body_entered.connect(_on_melee_area_body_entered)
+
+# Toggle the melee window
+func _enable_melee_area(enable: bool) -> void:
+	if enable:
+		melee_area.monitoring = true
+		melee_area.monitorable = true
+	else:
+		melee_area.monitoring = false
+		melee_area.monitorable = false
+	_update_melee_debug_visual(enable)
+
+# ----------------------------
+# Melee attack flow
+# ----------------------------
+func attack() -> void:
+	if melee_active:
+		return
+
+	if melee_on_cooldown:
+		return
+
+	melee_active = true
+	melee_on_cooldown = true
+	already_hit.clear()
+
+	if animation_player and animation_player.has_animation("attack"):
+		animation_player.play("attack")
+
+	# Enable hitbox for the short active window
+	_enable_melee_area(true)
+	await get_tree().create_timer(MELEE_WINDOW_SECONDS).timeout
+	_enable_melee_area(false)
+
+	melee_active = false
+
+	# Cooldown timer before next attack allowed
+	await get_tree().create_timer(MELEE_COOLDOWN_SECONDS).timeout
+	melee_on_cooldown = false
+
+# Called when a body enters the hitbox during the active window
+func _on_melee_area_body_entered(body: Node) -> void:
+	if not melee_active:
+		return
+
+	if already_hit.has(body):
+		return
+
+	already_hit[body] = true
+
+	if body.has_method("take_damage"):
+		body.take_damage(MELEE_DAMAGE)
+
+# ----------------------------
+# Debug mesh for the hitbox
+# ----------------------------
+func _create_melee_debug_mesh() -> void:
+	# Materials
+	melee_debug_mat_idle = StandardMaterial3D.new()
+	melee_debug_mat_idle.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	melee_debug_mat_idle.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	melee_debug_mat_idle.albedo_color = Color(1.0, 0.0, 0.0, 0.25) # red, semi-transparent
+	melee_debug_mat_idle.emission_enabled = true
+	melee_debug_mat_idle.emission = Color(1.0, 0.0, 0.0, 0.25)
+
+	melee_debug_mat_active = StandardMaterial3D.new()
+	melee_debug_mat_active.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	melee_debug_mat_active.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	melee_debug_mat_active.albedo_color = Color(0.0, 1.0, 0.0, 0.35) # green, semi-transparent
+	melee_debug_mat_active.emission_enabled = true
+	melee_debug_mat_active.emission = Color(0.0, 1.0, 0.0, 0.35)
+
+	# Mesh that matches the BoxShape3D
+	melee_debug_mesh = MeshInstance3D.new()
+	var box_mesh := BoxMesh.new()
+	box_mesh.size = MELEE_BOX_SIZE
+	melee_debug_mesh.mesh = box_mesh
+	melee_debug_mesh.material_override = melee_debug_mat_idle
+
+	# Parent it to the melee area so it uses the same transform/offset
+	melee_area.add_child(melee_debug_mesh)
+
+	# Draw both sides to reduce clipping visibility issues
+	melee_debug_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	melee_debug_mesh.visible = show_melee_debug
+
+func _update_melee_debug_visual(active: bool) -> void:
+	if melee_debug_mesh == null:
+		return
+
+	if not show_melee_debug:
+		melee_debug_mesh.visible = false
+		return
+
+	melee_debug_mesh.visible = true
+
+	if active:
+		melee_debug_mesh.material_override = melee_debug_mat_active
+	else:
+		melee_debug_mesh.material_override = melee_debug_mat_idle
