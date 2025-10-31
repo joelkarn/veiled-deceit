@@ -5,12 +5,22 @@ extends CharacterBody3D
 @onready var visuals: Node3D = $visuals
 @onready var camera: Camera3D = $camera_mount/Camera3D
 
+@export var pitch_min_deg := -80.0
+@export var pitch_max_deg := 20.0
+var _pitch := 0.0
+
+@export var max_health: float = 100.0
+@export var health: float = 100.0
+
+@export var health_bar_offset_y = 2
+
 const SPEED := 7.0
 const CUSTOM_GRAVITY := -45.0
 const JUMP_VELOCITY := 13.0
 
 @export var sens_horizontal := 0.1
 @export var sens_vertical := 0.1
+@export var fov: float = 50.0  # fish eye
 
 var init_jump_input := Vector2.ZERO
 var init_jump_dir := Vector2.ZERO
@@ -40,7 +50,14 @@ var melee_debug_mat_idle: StandardMaterial3D
 var melee_debug_mat_active: StandardMaterial3D
 
 func _ready() -> void:
+	health = max_health
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_pitch = camera_mount.rotation.x
+	
+	# Set camera FOV to reduce fish-eye effect
+	if camera:
+		camera.fov = fov
+	
 	_create_melee_area()
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
@@ -49,7 +66,14 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		# Rotate player (horizontal)
 		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
-		camera_mount.rotate_x(deg_to_rad(-event.relative.y * sens_vertical))
+		
+		var delta_pitch_deg: float = -event.relative.y * sens_vertical
+		_pitch += deg_to_rad(delta_pitch_deg)
+		_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
+		camera_mount.rotation.x = _pitch
+		
+		
+		#camera_mount.rotate_x(deg_to_rad(-event.relative.y * sens_vertical))
 		# TODO: decide what to do here, it's more obvious where player is looking
 		# without the visuals.rotate...
 		# Rotate only visuals so player model doesn't rotate when standing still
@@ -264,3 +288,16 @@ func _update_melee_debug_visual(active: bool) -> void:
 		melee_debug_mesh.material_override = melee_debug_mat_active
 	else:
 		melee_debug_mesh.material_override = melee_debug_mat_idle
+
+func take_damage(amount: float) -> void:
+	health -= amount
+	print("Player took ", amount, " damage. Health: ", health)
+	
+	if health <= 0:
+		die()
+
+func die() -> void:
+	print("Player died!")
+	# You might want to add game over logic here
+	# For now, just reset health
+	health = max_health
