@@ -22,7 +22,6 @@ var max_health: float = 100.0
 var health_bar_ready: bool = false
 var current_scale: float = 1.0  # Current scale of the health bar
 
-# Static variable to track if sorting is already scheduled for each parent node this frame
 static var sort_scheduled_per_parent: Dictionary = {}
 
 
@@ -76,7 +75,6 @@ func _create_2d_health_bar() -> void:
 	health_bar_ui.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	health_bar_ui.size = Vector2(bar_width, bar_height)
 	health_bar_ui.clip_contents = true
-	# Note: We use child order for sorting, not z_index, since CanvasLayer respects child order
 	
 	# Background (dark gray)
 	background_rect = ColorRect.new()
@@ -183,18 +181,12 @@ func _update_2d_position() -> void:
 	if not health_bar_ui or not is_instance_valid(health_bar_ui):
 		return
 	
-	# Get the camera - try multiple ways to find it
 	var camera = get_viewport().get_camera_3d()
-	
-	# If no camera from viewport, try to find it in the scene
 	if not camera:
-		# Try to find any Camera3D in the scene tree
 		camera = get_tree().get_first_node_in_group("camera")
 		if not camera:
-			# Try to find player's camera
 			var player = get_tree().get_first_node_in_group("player")
 			if not player:
-				# Try to find by path in main scene
 				var main_scene = get_tree().current_scene
 				if main_scene:
 					var player_node = main_scene.find_child("player", true, false)
@@ -205,77 +197,52 @@ func _update_2d_position() -> void:
 		health_bar_ui.visible = false
 		return
 	
-	# Get the 3D world position (parent position + our offset)
 	var world_pos = global_position
-	
-	# Check if position is behind the camera
 	var camera_pos = camera.global_position
+	
+	# Check if behind camera
 	var camera_forward = -camera.global_transform.basis.z
 	var to_world_pos = (world_pos - camera_pos).normalized()
-	var dot = to_world_pos.dot(camera_forward)
-	if dot < 0:
-		# Behind camera
+	if to_world_pos.dot(camera_forward) < 0:
 		health_bar_ui.visible = false
 		return
 	
-	# Calculate distance from camera
 	var distance = world_pos.distance_to(camera_pos)
-	
-	# Check max distance - hide if beyond max distance
 	if distance > max_distance:
 		health_bar_ui.visible = false
 		return
 	
-	# Calculate scale based on distance (player always at max scale)
+	# Calculate scale based on distance
 	var scale: float = 1.0
-	if bar_type == BarType.PLAYER:
-		# Player always at max size
-		scale = 1.0
-	else:
-		# Scale inversely with distance (closer = larger)
-		# At min_distance or closer, scale = 1.0
-		# At max_distance, scale approaches 0.2
+	if bar_type != BarType.PLAYER:
 		if distance <= min_distance:
 			scale = 1.0
 		else:
 			var distance_range = max_distance - min_distance
 			if distance_range > 0:
 				var normalized_distance = (distance - min_distance) / distance_range
-				# Linear scaling: scale from 1.0 at min_distance to 0.2 at max_distance
 				scale = lerp(1.0, 0.2, normalized_distance)
-				# Clamp scale to ensure it's never too small
 				scale = clamp(scale, 0.2, 1.0)
 			else:
 				scale = 1.0
 	
-	# Update bar size if scale changed
 	if scale != current_scale:
 		current_scale = scale
 		_update_bar_size(scale)
 	
-	# Project 3D position to 2D screen coordinates
 	var screen_pos = camera.unproject_position(world_pos)
-	
-	# Calculate current scaled dimensions for off-screen check
 	var scaled_width = bar_width * scale
 	var scaled_height = bar_height * scale
 	
-	# Check if position is on screen (off-screen)
 	var viewport_size = get_viewport().get_visible_rect().size
 	if screen_pos.x < -scaled_width or screen_pos.x > viewport_size.x + scaled_width or screen_pos.y < -scaled_height or screen_pos.y > viewport_size.y + scaled_height:
-		# Off screen - hide the health bar
 		health_bar_ui.visible = false
 		return
 	
-	# Show the health bar if it was hidden
 	health_bar_ui.visible = true
-	
-	# Store distance as metadata on the Control node for sorting
-	# We'll use child order instead of z_index since CanvasLayer respects child order
 	health_bar_ui.set_meta("distance", distance)
 	
-	# Defer sorting to happen once per frame, after all health bars have updated their distances
-	# This prevents race conditions when multiple health bars update in the same frame
+	# Defer sorting once per frame to prevent race conditions
 	var parent_node = health_bar_ui.get_parent()
 	if parent_node:
 		var parent_id = parent_node.get_instance_id()
@@ -284,58 +251,38 @@ func _update_2d_position() -> void:
 			sort_scheduled_per_parent[parent_id] = current_frame
 			call_deferred("_sort_health_bars_deferred", parent_node)
 	
-	# Adjust for the health bar size (center it horizontally, offset vertically)
 	screen_pos.x -= scaled_width / 2.0
 	screen_pos.y -= scaled_height / 2.0
-	
-	# Update UI position
 	health_bar_ui.position = screen_pos
 
 func _sort_health_bars_deferred(parent_node: Control) -> void:
-	# This is called deferred, so all health bars have updated their distances by now
 	_sort_health_bars_by_distance(parent_node)
 
 func _sort_health_bars_by_distance(parent_node: Control) -> void:
-	# Collect all visible health bars with their distances
 	var health_bars_data = []
 	for child in parent_node.get_children():
-		if child is Control and child.name.begins_with("HealthBar_") and child.visible:
-			if child.has_meta("distance"):
-				var distance = child.get_meta("distance")
-				health_bars_data.append({"node": child, "distance": distance})
+		if child is Control and child.name.begins_with("HealthBar_") and child.visible and child.has_meta("distance"):
+			health_bars_data.append({"node": child, "distance": child.get_meta("distance")})
 	
-	# Need at least 2 health bars to sort
 	if health_bars_data.size() < 2:
 		return
 	
-	# Sort by distance (furthest first = ascending distance)
 	health_bars_data.sort_custom(func(a, b): return a.distance < b.distance)
 	
-	# Now reorder children: furthest should be first in child list, closest should be last
-	# In Godot, children are drawn in order, so first = behind, last = on top
+	# Place furthest first, closest last
 	for i in range(health_bars_data.size()):
-		var data = health_bars_data[i]
-		var target_index = i  # Furthest at 0, closest at last
-		
-		# Get current index of this node
-		var current_index = data.node.get_index()
-		
-		# Only move if not already at the correct position
-		if current_index != target_index:
-			# Move to target position
-			parent_node.move_child(data.node, target_index)
+		var node = health_bars_data[i].node
+		if node.get_index() != i:
+			parent_node.move_child(node, i)
 	
-	# Reverse the final order: this makes closest on top (drawn last) and furthest behind (drawn first)
+	# Reverse order so closest is on top (drawn last)
 	var health_bar_nodes = []
 	for child in parent_node.get_children():
 		if child is Control and child.name.begins_with("HealthBar_") and child.visible:
 			health_bar_nodes.append(child)
 	
-	# Reverse the order by moving each node to the opposite position
 	for i in range(health_bar_nodes.size()):
-		var node = health_bar_nodes[i]
-		var reversed_index = health_bar_nodes.size() - 1 - i
-		parent_node.move_child(node, reversed_index)
+		parent_node.move_child(health_bar_nodes[i], health_bar_nodes.size() - 1 - i)
 
 func _update_bar_size(scale: float) -> void:
 	if not health_bar_ui:

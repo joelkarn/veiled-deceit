@@ -31,7 +31,7 @@ const AUTO_ATTACK_COOLDOWN := 0.5
 const AUTO_ATTACK_WINDOW_SECONDS := 0.1
 const AUTO_ATTACK_DAMAGE := 10
 # Local offset of the hitbox relative to the player (in front, chest height)
-const MELEE_OFFSET := Vector3(0.0, 1.0, -1.2)
+const MELEE_OFFSET := Vector3(0.0, 1.0, -1.5)
 # Size of the hitbox (BoxShape3D): width (X), height (Y), depth (Z forward)
 const MELEE_BOX_SIZE := Vector3(1.8, 1.2, 1.6)
 
@@ -44,7 +44,7 @@ var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
 # --------------------------
 # Debugging (hitbox visual)
 # --------------------------
-@export var show_melee_debug := false
+@export var show_melee_debug := true
 var melee_debug_mesh: MeshInstance3D
 var melee_debug_mat_idle: StandardMaterial3D
 var melee_debug_mat_active: StandardMaterial3D
@@ -111,10 +111,20 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	
+	# Check if backward key is pressed for speed multiplier calculation
+	var is_backward := Input.is_action_pressed("backward")
+	
 	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107)
 	var input_dir: Vector2 = Input.get_vector("left", "right", "forward", "backward")
 	# relative to world so input is transformed to the world's basis
 	var direction: Vector3 = (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y))
+	
+	# Calculate speed multiplier based on movement direction
+	# Backward (S) or backward+strafe (S+A or S+D) = 50% speed
+	# All other directions = 100% speed
+	var speed_multiplier := 1.0
+	if is_backward:
+		speed_multiplier = 0.5
 
 	# In air, either falling or jumping
 	if not is_on_floor():
@@ -122,9 +132,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y += CUSTOM_GRAVITY * delta
 
 		if is_jumping:
-			handle_jumping(init_jump_input, direction, input_dir)
+			handle_jumping(init_jump_input, direction, input_dir, speed_multiplier)
 		else:
-			handle_falling(direction)
+			handle_falling(direction, speed_multiplier)
 		
 		move_and_slide()
 		return
@@ -138,8 +148,8 @@ func _physics_process(delta: float) -> void:
 		# Rotate visuals to face movement direction
 		visuals.look_at(position + direction)
 		
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
+		velocity.x = direction.x * SPEED * speed_multiplier
+		velocity.z = direction.z * SPEED * speed_multiplier
 	else:
 		if animation_player and animation_player.current_animation != "idle":
 			animation_player.play("idle")
@@ -157,13 +167,13 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-func handle_jumping(initial_input: Vector2, direction: Vector3, input_dir: Vector2) -> void:
+func handle_jumping(initial_input: Vector2, direction: Vector3, input_dir: Vector2, speed_multiplier: float) -> void:
 	# Jump with no initial horizontal velocity
 	if initial_input == Vector2.ZERO:
 		# If input in any direction, go slow
 		if direction != Vector3.ZERO:
-			velocity.x = direction.x * SPEED * 0.25
-			velocity.z = direction.z * SPEED * 0.25
+			velocity.x = direction.x * SPEED * 0.25 * speed_multiplier
+			velocity.z = direction.z * SPEED * 0.25 * speed_multiplier
 		else:
 			# If no input, go straight up and down
 			velocity.x = 0.0
@@ -172,22 +182,22 @@ func handle_jumping(initial_input: Vector2, direction: Vector3, input_dir: Vecto
 		# Jump with initial horizontal velocity
 		# If input direction key is pressed, continue with SPEED
 		if input_dir == initial_input:
-			velocity.x = init_jump_dir.x * SPEED
-			velocity.z = init_jump_dir.y * SPEED
+			velocity.x = init_jump_dir.x * SPEED * speed_multiplier
+			velocity.z = init_jump_dir.y * SPEED * speed_multiplier
 		else:
 			# If opposite of input direction key is pressed, go slow
 			if input_dir + initial_input == Vector2.ZERO:
-				velocity.x = init_jump_dir.x * SPEED * 0.25
-				velocity.z = init_jump_dir.y * SPEED * 0.25
+				velocity.x = init_jump_dir.x * SPEED * 0.25 * speed_multiplier
+				velocity.z = init_jump_dir.y * SPEED * 0.25 * speed_multiplier
 			else:
 				# If no key related to input direction is pressed, go medium slow
-				velocity.x = init_jump_dir.x * SPEED * 0.5
-				velocity.z = init_jump_dir.y * SPEED * 0.5
+				velocity.x = init_jump_dir.x * SPEED * 0.5 * speed_multiplier
+				velocity.z = init_jump_dir.y * SPEED * 0.5 * speed_multiplier
 
-func handle_falling(direction) -> void:
+func handle_falling(direction: Vector3, speed_multiplier: float) -> void:
 	# Placeholder for falling behavior
-	velocity.x = direction.x * SPEED * 0.5
-	velocity.z = direction.z * SPEED * 0.5
+	velocity.x = direction.x * SPEED * 0.5 * speed_multiplier
+	velocity.z = direction.z * SPEED * 0.5 * speed_multiplier
 
 # ----------------------------
 # Melee hitbox: Area3D setup
