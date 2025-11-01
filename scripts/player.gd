@@ -53,17 +53,12 @@ var ui_manager: Node
 
 func _ready() -> void:
 	health = max_health
-	# Mouse mode is handled by UI manager
 	_pitch = camera_mount.rotation.x
 	
-	# Set camera FOV to reduce fish-eye effect
 	if camera:
 		camera.fov = fov
 	
-	# Get UI manager reference
-	ui_manager = get_node_or_null("/root/Node3D/UIManager")
-	if ui_manager == null:
-		ui_manager = get_node_or_null("../UIManager")
+	ui_manager = get_node_or_null("../UIManager")
 	
 	_create_melee_area()
 	_create_melee_debug_mesh()
@@ -75,58 +70,30 @@ func _input(event: InputEvent) -> void:
 		return
 	
 	if event is InputEventMouseMotion:
-		# Rotate player (horizontal)
-		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
+		handle_mouse_motion(event)
 		
-		var delta_pitch_deg: float = -event.relative.y * sens_vertical
-		_pitch += deg_to_rad(delta_pitch_deg)
-		_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
-		camera_mount.rotation.x = _pitch
-		
-		
-		#camera_mount.rotate_x(deg_to_rad(-event.relative.y * sens_vertical))
-		# TODO: decide what to do here, it's more obvious where player is looking
-		# without the visuals.rotate...
-		# Rotate only visuals so player model doesn't rotate when standing still
-		#visuals.rotate_y(deg_to_rad(event.relative.x * sens_horizontal))
-		# Rotate camera (vertical)
-		
-	
+
 	if event.is_action_pressed("attack"):
 		auto_attack()
 
 func _physics_process(delta: float) -> void:
-	# Don't process movement if menu is open
+	
 	if ui_manager and ui_manager.is_menu_active():
-		# Stop animation and movement when menu is open
-		if animation_player and animation_player.current_animation != "idle":
-			animation_player.play("idle")
-		# Just apply gravity and stop horizontal movement
-		if not is_on_floor():
-			velocity.y += CUSTOM_GRAVITY * delta
-		else:
-			velocity.y = 0.0
-		velocity.x = 0.0
-		velocity.z = 0.0
-		move_and_slide()
+		stop_movement(delta)
 		return
 	
-	# Check if backward key is pressed for speed multiplier calculation
-	var is_backward := Input.is_action_pressed("backward")
-	
-	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107)
-	var input_dir: Vector2 = Input.get_vector("left", "right", "forward", "backward")
-	# relative to world so input is transformed to the world's basis
-	var direction: Vector3 = (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y))
-	
-	# Calculate speed multiplier based on movement direction
-	# Backward (S) or backward+strafe (S+A or S+D) = 50% speed
-	# All other directions = 100% speed
 	var speed_multiplier := 1.0
-	if is_backward:
+	# Slower movement when moving backwards
+	if Input.is_action_pressed("backward"):
 		speed_multiplier = 0.5
+	
+	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107), etc.
+	var input_dir: Vector2 = Input.get_vector("left", "right", "forward", "backward")
+	# relative to world
+	var direction: Vector3 = (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y))
 
-	# In air, either falling or jumping
+
+	# In air (fall or jump)
 	if not is_on_floor():
 		# Apply gravity only when in air
 		velocity.y += CUSTOM_GRAVITY * delta
@@ -157,8 +124,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 
-	# Handle jump with initial conditions
-	if Input.is_action_just_pressed("ui_accept"):
+	if Input.is_action_just_pressed("jump"):
 		is_jumping = true
 		velocity.y = JUMP_VELOCITY
 		init_jump_input = input_dir
@@ -178,21 +144,24 @@ func handle_jumping(initial_input: Vector2, direction: Vector3, input_dir: Vecto
 			# If no input, go straight up and down
 			velocity.x = 0.0
 			velocity.z = 0.0
-	else:
-		# Jump with initial horizontal velocity
-		# If input direction key is pressed, continue with SPEED
-		if input_dir == initial_input:
-			velocity.x = init_jump_dir.x * SPEED * speed_multiplier
-			velocity.z = init_jump_dir.y * SPEED * speed_multiplier
-		else:
-			# If opposite of input direction key is pressed, go slow
-			if input_dir + initial_input == Vector2.ZERO:
-				velocity.x = init_jump_dir.x * SPEED * 0.25 * speed_multiplier
-				velocity.z = init_jump_dir.y * SPEED * 0.25 * speed_multiplier
-			else:
-				# If no key related to input direction is pressed, go medium slow
-				velocity.x = init_jump_dir.x * SPEED * 0.5 * speed_multiplier
-				velocity.z = init_jump_dir.y * SPEED * 0.5 * speed_multiplier
+		return
+
+	# Jump with initial horizontal velocity
+	# If input direction key is pressed, continue with SPEED
+	if input_dir == initial_input:
+		velocity.x = init_jump_dir.x * SPEED * speed_multiplier
+		velocity.z = init_jump_dir.y * SPEED * speed_multiplier
+		return
+
+	# If opposite of input direction key is pressed, go slow
+	if input_dir + initial_input == Vector2.ZERO:
+		velocity.x = init_jump_dir.x * SPEED * 0.25 * speed_multiplier
+		velocity.z = init_jump_dir.y * SPEED * 0.25 * speed_multiplier
+		return
+
+	# If no key related to input direction is pressed, go medium slow
+	velocity.x = init_jump_dir.x * SPEED * 0.5 * speed_multiplier
+	velocity.z = init_jump_dir.y * SPEED * 0.5 * speed_multiplier
 
 func handle_falling(direction: Vector3, speed_multiplier: float) -> void:
 	# Placeholder for falling behavior
@@ -324,6 +293,29 @@ func _update_melee_debug_visual(active: bool) -> void:
 		melee_debug_mesh.material_override = melee_debug_mat_active
 	else:
 		melee_debug_mesh.material_override = melee_debug_mat_idle
+		
+func stop_movement(delta):
+	# Stop animation and movement when menu is open
+	if animation_player and animation_player.current_animation != "idle":
+		animation_player.play("idle")
+	# Just apply gravity and stop horizontal movement
+	if not is_on_floor():
+		velocity.y += CUSTOM_GRAVITY * delta
+	else:
+		velocity.y = 0.0
+	velocity.x = 0.0
+	velocity.z = 0.0
+	move_and_slide()
+	
+func handle_mouse_motion(event):
+	# Rotate player (horizontal)
+	rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
+	
+	# Rotate camera (look up and down)
+	var delta_pitch_deg: float = -event.relative.y * sens_vertical
+	_pitch += deg_to_rad(delta_pitch_deg)
+	_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
+	camera_mount.rotation.x = _pitch
 
 func take_damage(amount: float) -> void:
 	health -= amount
