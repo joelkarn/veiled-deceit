@@ -6,8 +6,14 @@ signal menu_closed
 var is_menu_open := false
 
 func _ready() -> void:
-	# Start with mouse captured
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Check if lobby is visible - if so, don't capture mouse yet
+	var lobby = get_node_or_null("../UILayers/LobbyLayer/Lobby")
+	if lobby and lobby.visible:
+		# Lobby will handle mouse visibility
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	else:
+		# Start with mouse captured (when lobby is hidden/connected)
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):  # ESC key
