@@ -1,5 +1,10 @@
 extends CharacterBody3D
 
+# Network properties
+@export var player_id: int = 0
+var is_local_player: bool = false
+var is_host: bool = false
+
 @onready var camera_mount: Node3D = $camera_mount
 @onready var animation_player: AnimationPlayer = $visuals/mixamo_base/AnimationPlayer
 @onready var visuals: Node3D = $visuals
@@ -13,6 +18,19 @@ var _pitch := 0.0
 @export var health: float = 100.0
 
 @export var health_bar_offset_y = 2
+
+# Input buffer for network
+var input_buffer = {
+	"movement": Vector2.ZERO,
+	"jump": false,
+	"attack": false,
+	"camera_rotation": Vector2.ZERO,  # Only set when mouse moves
+	"speed_multiplier": 1.0
+}
+
+# Network state sync
+var sync_timer: float = 0.0
+const SYNC_INTERVAL: float = 0.033  # ~30 Hz
 
 const SPEED := 7.0
 const CUSTOM_GRAVITY := -45.0
@@ -57,6 +75,9 @@ func _ready() -> void:
 	
 	if camera:
 		camera.fov = fov
+		# Only local player should see their camera
+		if not is_local_player:
+			camera.current = false
 	
 	ui_manager = get_node_or_null("../UIManager")
 	
@@ -65,31 +86,69 @@ func _ready() -> void:
 	_update_melee_debug_visual(false)
 
 func _input(event: InputEvent) -> void:
+	# Only local player processes input
+	if not is_local_player:
+		return
+	
 	# Don't process input if menu is open
 	if ui_manager and ui_manager.is_menu_active():
 		return
 	
 	if event is InputEventMouseMotion:
 		handle_mouse_motion(event)
+		input_buffer.camera_rotation = event.relative
 		
 
 	if event.is_action_pressed("attack"):
+		input_buffer.attack = true
 		auto_attack()
 
 func _physics_process(delta: float) -> void:
-	
 	if ui_manager and ui_manager.is_menu_active():
 		stop_movement(delta)
 		return
 	
-	var speed_multiplier := 1.0
-	# Slower movement when moving backwards
-	if Input.is_action_pressed("backward"):
-		speed_multiplier = 0.5
+	# Collect input for local player
+	if is_local_player:
+		input_buffer.movement = Input.get_vector("left", "right", "forward", "backward")
+		input_buffer.jump = Input.is_action_just_pressed("jump")
+		input_buffer.speed_multiplier = 0.5 if Input.is_action_pressed("backward") else 1.0
+		
+		# Send input to host (but don't reset jump yet - we need it for local processing)
+		send_player_input_keep_jump()
+		
+		# Reset camera rotation after sending (prevents drift)
+		# It will be set in _input() if mouse moves
+		input_buffer.camera_rotation = Vector2.ZERO
 	
-	# no input: (0, 0), right: (0, 1), forward: (0, -1), left back: (-0.707107, 0.707107), etc.
-	var input_dir: Vector2 = Input.get_vector("left", "right", "forward", "backward")
-	# relative to world
+	# Host processes movement for all players
+	# Local player also processes (client-side prediction)
+	if multiplayer.is_server() or is_local_player:
+		process_movement(delta)
+		
+		# Reset jump after processing (local player)
+		if is_local_player:
+			input_buffer.jump = false
+	else:
+		# Remote players on clients - they get state updates, but we still need to apply gravity
+		if not is_on_floor():
+			velocity.y += CUSTOM_GRAVITY * delta
+		move_and_slide()
+	
+	# Sync state periodically (host only)
+	if multiplayer.is_server():
+		sync_timer += delta
+		if sync_timer >= SYNC_INTERVAL:
+			sync_timer = 0.0
+			sync_player_state()
+
+func process_movement(delta: float) -> void:
+	var speed_multiplier = input_buffer.speed_multiplier if is_local_player else 1.0
+	
+	# For local player, use input buffer
+	# For remote players on host, we'll get their input via RPC
+	# For now, let local player use their own input
+	var input_dir: Vector2 = input_buffer.movement if is_local_player else Vector2.ZERO
 	var direction: Vector3 = (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y))
 
 
@@ -124,12 +183,13 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 
-	if Input.is_action_just_pressed("jump"):
+	if input_buffer.jump:
 		is_jumping = true
 		velocity.y = JUMP_VELOCITY
 		init_jump_input = input_dir
 		init_jump_dir.x = direction.x
 		init_jump_dir.y = direction.z
+		input_buffer.jump = false
 
 	move_and_slide()
 
@@ -329,3 +389,112 @@ func die() -> void:
 	# You might want to add game over logic here
 	# For now, just reset health
 	health = max_health
+
+# ----------------------------
+# Network Methods
+# ----------------------------
+
+# Send input to host (keeps jump for local processing)
+func send_player_input_keep_jump() -> void:
+	if not is_local_player:
+		return
+	
+	var input_copy = input_buffer.duplicate()
+	# Reset one-time inputs except jump (we'll reset it after processing)
+	input_copy.attack = false
+	
+	# Only send camera rotation if it's non-zero (prevents unnecessary updates)
+	if input_copy.camera_rotation == Vector2.ZERO:
+		input_copy.erase("camera_rotation")  # Remove from dict if zero
+	
+	if multiplayer.is_server():
+		# We are the host, process directly
+		process_player_input(input_copy)
+	else:
+		# Send to host's NetworkManager
+		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+		if network_manager:
+			network_manager.rpc_id(1, "receive_player_input", player_id, input_copy)
+	
+	# Reset one-time inputs except jump
+	input_buffer.attack = false
+
+# Send input to host (for network sync - resets all one-time inputs)
+func send_player_input() -> void:
+	if not is_local_player:
+		return
+	
+	var input_copy = input_buffer.duplicate()
+	# Reset one-time inputs
+	input_copy.attack = false
+	input_copy.jump = false
+	
+	if multiplayer.is_server():
+		# We are the host, process directly
+		process_player_input(input_copy)
+	else:
+		# Send to host's NetworkManager
+		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+		if network_manager:
+			network_manager.rpc_id(1, "receive_player_input", player_id, input_copy)
+	
+	# Reset one-time inputs
+	input_buffer.attack = false
+	input_buffer.jump = false
+
+# Host processes input from clients (or locally)
+# This is called by NetworkManager for remote players, or directly for local host player
+func process_player_input(input_data: Dictionary) -> void:
+	# Store input for this player
+	input_buffer.movement = input_data.get("movement", Vector2.ZERO)
+	input_buffer.jump = input_data.get("jump", false)
+	input_buffer.attack = input_data.get("attack", false)
+	input_buffer.speed_multiplier = input_data.get("speed_multiplier", 1.0)
+	
+	# Process camera rotation if provided
+	if input_data.has("camera_rotation"):
+		var rotation_delta = input_data["camera_rotation"]
+		rotate_y(deg_to_rad(-rotation_delta.x * sens_horizontal))
+		var delta_pitch = -rotation_delta.y * sens_vertical
+		_pitch += deg_to_rad(delta_pitch)
+		_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
+		camera_mount.rotation.x = _pitch
+
+# Host syncs player state to all clients
+func sync_player_state() -> void:
+	if not multiplayer.is_server():
+		return
+	
+	var state = {
+		"position": position,
+		"rotation_y": rotation.y,
+		"camera_pitch": camera_mount.rotation.x,
+		"health": health,
+		"velocity": velocity,
+		"is_jumping": is_jumping,
+		"animation": animation_player.current_animation if animation_player else "idle"
+	}
+	
+	rpc("update_player_state", state)
+
+# Clients receive state from host
+@rpc("authority", "call_remote", "unreliable")
+func update_player_state(state: Dictionary) -> void:
+	if is_local_player:
+		# Don't overwrite local player with server state (client-side prediction)
+		# We'll use this for correction if needed later
+		return
+	
+	# Interpolate position smoothly for remote players
+	position = position.lerp(state.get("position", position), 0.3)
+	rotation.y = state.get("rotation_y", rotation.y)
+	camera_mount.rotation.x = state.get("camera_pitch", camera_mount.rotation.x)
+	health = state.get("health", health)
+	velocity = state.get("velocity", velocity)
+	is_jumping = state.get("is_jumping", false)
+	
+	# Update animation
+	var anim = state.get("animation", "idle")
+	if animation_player and anim != "" and animation_player.current_animation != anim:
+		if animation_player.has_animation(anim):
+			animation_player.play(anim)
