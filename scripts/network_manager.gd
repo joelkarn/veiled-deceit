@@ -1,14 +1,13 @@
 extends Node
 
 # Network Manager - Handles multiplayer connection and player spawning
-# For now: Basic host/client setup for testing
 
 const PORT = 7777
 const MAX_PLAYERS = 5
 
 # Spawn points for players (5 locations)
 var spawn_points = [
-	Vector3(-0.179691, 0, 4.3177),  # Current player position
+	Vector3(-0, 0, 0),  # Current player position
 	Vector3(5, 0, 4.3177),
 	Vector3(-5, 0, 4.3177),
 	Vector3(0, 0, 10),

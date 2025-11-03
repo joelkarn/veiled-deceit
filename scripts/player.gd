@@ -30,12 +30,12 @@ var input_buffer = {
 
 # Network state sync
 var sync_timer: float = 0.0
-const SYNC_INTERVAL: float = 0.033  # ~30 Hz
+const SYNC_INTERVAL: float = 0.05  # ~20 Hz - Lower frequency for non-competitive games, reduces network load
 
 # Server reconciliation for local player
 var last_server_position: Vector3 = Vector3.ZERO
-var position_error_threshold: float = 0.5  # Snap if position differs by more than this
-var smooth_correction_speed: float = 10.0  # How fast to correct position (units per second)
+var position_error_threshold: float = 1.0  # Snap if position differs by more than this (increased for smoother feel)
+var smooth_correction_speed: float = 5.0  # How fast to correct position (units per second) - slower for smoother feel
 
 # Remote player interpolation (for non-local players on clients)
 var target_position: Vector3 = Vector3.ZERO
@@ -46,7 +46,7 @@ var has_target_state: bool = false  # Whether we've received a state update
 var remote_interpolation_speed: float = 15.0  # units per second
 
 const SPEED := 7.0
-const CUSTOM_GRAVITY := -45.0
+const GRAVITY := -45.0
 const JUMP_VELOCITY := 13.0
 
 @export var sens_horizontal := 0.1
@@ -165,22 +165,17 @@ func _input(event: InputEvent) -> void:
 		auto_attack()
 
 func _physics_process(delta: float) -> void:
-	# Handle menu state (stop movement but don't block state sync)
+	# Stop movement if menu
 	var menu_active = ui_manager and ui_manager.is_menu_active()
-	
 	if menu_active and is_local_player:
-		# Stop local player movement when menu is open
 		stop_movement(delta)
-		# Still need to sync state for other players (if we're the host)
-		# So don't return early here
 	
-	# Collect input for local player (only if menu not active)
+	# Collect input for local player
 	if is_local_player and not menu_active:
 		input_buffer["movement"] = Input.get_vector("left", "right", "forward", "backward")
 		input_buffer["jump"] = Input.is_action_just_pressed("jump")
 		input_buffer["speed_multiplier"] = 0.5 if Input.is_action_pressed("backward") else 1.0
 		
-		# Send input to host (but don't reset jump yet - we need it for local processing)
 		send_player_input_keep_jump()
 		
 		# Reset camera rotation after sending (prevents drift)
@@ -211,7 +206,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			# If we haven't received state yet, just apply basic gravity to prevent falling
 			if not is_on_floor():
-				velocity.y += CUSTOM_GRAVITY * delta
+				velocity.y += GRAVITY * delta
 				move_and_slide()
 	
 	# Apply server reconciliation for local player (smooth correction if needed)
@@ -241,15 +236,15 @@ func process_movement(delta: float) -> void:
 	var direction: Vector3 = (rotation_basis * Vector3(input_dir.x, 0.0, input_dir.y))
 	
 	# Debug: Log movement for remote players on host
-	if multiplayer.is_server() and not is_local_player:
-		if input_dir != Vector2.ZERO:
-			print("  [HOST] Processing movement for Player ", player_id, ": input_dir=", input_dir, " rotation_y=", player_rotation_y, " direction=", direction)
+	#if multiplayer.is_server() and not is_local_player:
+		#if input_dir != Vector2.ZERO:
+			#print("  [HOST] Processing movement for Player ", player_id, ": input_dir=", input_dir, " rotation_y=", player_rotation_y, " direction=", direction)
 
 
 	# In air (fall or jump)
 	if not is_on_floor():
 		# Apply gravity only when in air
-		velocity.y += CUSTOM_GRAVITY * delta
+		velocity.y += GRAVITY * delta
 
 		if is_jumping:
 			handle_jumping(init_jump_input, direction, input_dir, speed_multiplier)
@@ -474,7 +469,7 @@ func stop_movement(delta):
 		animation_player.play("idle")
 	# Just apply gravity and stop horizontal movement
 	if not is_on_floor():
-		velocity.y += CUSTOM_GRAVITY * delta
+		velocity.y += GRAVITY * delta
 	else:
 		velocity.y = 0.0
 	velocity.x = 0.0
@@ -562,7 +557,6 @@ func send_player_input_keep_jump() -> void:
 	input_copy.attack = false
 	
 	# Send player's current rotation so host can calculate movement direction correctly
-	# This ensures movement is relative to the client's view, not the host's
 	input_copy["player_rotation_y"] = rotation.y
 	
 	# Only send camera rotation if it's non-zero (prevents unnecessary updates)
@@ -628,9 +622,9 @@ func process_player_input(input_data: Dictionary) -> void:
 		input_buffer["player_rotation_y"] = rotation.y
 	
 	# Debug: Log received input for remote players on host
-	if multiplayer.is_server() and not is_local_player:
-		if input_buffer["movement"] != Vector2.ZERO:
-			print("  [HOST] Received input for Player ", player_id, ": movement=", input_buffer["movement"], " rotation_y=", input_buffer["player_rotation_y"])
+	#if multiplayer.is_server() and not is_local_player:
+		#if input_buffer["movement"] != Vector2.ZERO:
+			#print("  [HOST] Received input for Player ", player_id, ": movement=", input_buffer["movement"], " rotation_y=", input_buffer["player_rotation_y"])
 	
 	# Process camera rotation if provided
 	if input_data.has("camera_rotation"):
@@ -642,6 +636,7 @@ func process_player_input(input_data: Dictionary) -> void:
 		camera_mount.rotation.x = _pitch
 
 # Host syncs player state to all clients
+# Optimized for non-competitive games: lower frequency, smaller corrections
 func sync_player_state() -> void:
 	if not multiplayer.is_server():
 		return
@@ -660,11 +655,8 @@ func sync_player_state() -> void:
 		"animation": animation_player.current_animation if animation_player else "idle"
 	}
 	
-	# Debug: Log what we're syncing (only occasionally to avoid spam)
-	if sync_timer < 0.1:  # Log once every ~3 seconds (for all players)
-		print("  [HOST] Syncing state for Player ", player_id, ": position=", position, " health=", health, " (is_local: ", is_local_player, ")")
-	
-	# Use unreliable for frequent position updates
+	# Use unreliable for frequent position updates (drops packets gracefully)
+	# Lower frequency (20Hz) reduces network load and potential crash issues
 	rpc("update_player_state", state)
 
 # Clients receive state from host
@@ -687,10 +679,8 @@ func update_player_state(state: Dictionary) -> void:
 		velocity = state.get("velocity", velocity)
 		is_jumping = state.get("is_jumping", false)
 		
-		# Debug: Log position differences occasionally
-		var pos_diff = position.distance_to(server_pos)
-		if pos_diff > 0.1:  # Only log if there's a meaningful difference
-			print("  [CLIENT] Local player position diff: ", pos_diff, " (local: ", position, ", server: ", server_pos, ")")
+		# Don't log position differences - reduces console spam and potential crash issues
+		# Position reconciliation will handle any differences smoothly
 	else:
 		# Remote players: store target state for interpolation in _physics_process
 		var new_target_position = state.get("position", position)
@@ -724,24 +714,26 @@ func update_player_state(state: Dictionary) -> void:
 
 # Apply server reconciliation for local player on clients
 # This smoothly corrects the local player's position if it drifts from the server
+# Made less aggressive for smoother feel in non-competitive games
 func _apply_server_reconciliation(delta: float) -> void:
 	if last_server_position == Vector3.ZERO:
 		return  # Haven't received server position yet
 	
 	var position_error = position.distance_to(last_server_position)
 	
-	if position_error < 0.01:
-		# Close enough, no correction needed
+	# Only correct if error is significant (more forgiving threshold)
+	if position_error < 0.2:
+		# Close enough, no correction needed - gives client more authority
 		return
 	
 	if position_error > position_error_threshold:
 		# Error is too large, snap immediately to prevent visible teleporting
-		print("  [CLIENT] Position error too large (", position_error, "), snapping to server position")
+		# Don't print - reduces console spam
 		position = last_server_position
 		# Also sync velocity to match server
 		velocity = Vector3.ZERO
 	else:
-		# Smoothly correct position over time
+		# Smoothly correct position over time (very gently)
 		var correction = smooth_correction_speed * delta
 		if position_error > correction:
 			position = position.move_toward(last_server_position, correction)
