@@ -212,6 +212,32 @@ func receive_player_input(peer_id: int, input_data: Dictionary) -> void:
 	if player and player.has_method("process_player_input"):
 		player.process_player_input(input_data)
 
+# Clients send position updates to host (client-authoritative movement)
+@rpc("any_peer", "call_local", "unreliable")
+func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return  # Only host processes
+	
+	# Find the player instance for this peer_id
+	var player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
+	if player and player.has_method("validate_client_position_state"):
+		player.validate_client_position_state(state)
+
+# Clients send camera rotation to host (for display only)
+@rpc("any_peer", "call_local", "unreliable")
+func receive_camera_rotation(peer_id: int, rotation_data: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return  # Only host processes
+	
+	# Find the player instance for this peer_id
+	var player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
+	if player and player.has_method("process_player_input"):
+		# Use process_player_input to handle camera rotation
+		var input_data = {
+			"camera_rotation": rotation_data.get("camera_rotation", Vector2.ZERO)
+		}
+		player.process_player_input(input_data)
+
 # Clients send damage requests to host for validation
 @rpc("any_peer", "call_local", "reliable")
 func process_damage_request(attacker_id: int, body_name: String, body_peer_id: int, damage: float) -> void:
