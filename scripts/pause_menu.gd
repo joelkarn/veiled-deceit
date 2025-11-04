@@ -59,5 +59,8 @@ func _on_exit_pressed() -> void:
 	if network_manager and multiplayer.is_server():
 		network_manager.shutdown_host()
 	else:
-		# Client: Just quit (server disconnect will handle cleanup)
-		get_tree().quit()
+		# Client: Disconnect gracefully before quitting
+		if network_manager:
+			network_manager.shutdown_client()
+		else:
+			get_tree().quit()

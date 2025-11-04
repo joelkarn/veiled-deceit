@@ -100,10 +100,12 @@ func _handle_new_client(peer_id: int) -> void:
 func _on_peer_disconnected(peer_id: int) -> void:
 	print("Peer ", peer_id, " disconnected")
 	
-	# Remove player from scene
-	var player_node = get_node_or_null("../Player_" + str(peer_id))
-	if player_node:
-		player_node.queue_free()
+	# Remove player from scene (players are children of scene root, not NetworkManager)
+	var scene = get_tree().current_scene
+	if scene:
+		var player_node = scene.get_node_or_null("Player_" + str(peer_id))
+		if player_node:
+			player_node.queue_free()
 
 # Client: Called when successfully connected to server
 func _on_connected_to_server() -> void:
@@ -277,6 +279,30 @@ func _do_quit() -> void:
 		return
 	
 	# Wait a bit longer to ensure all input events are processed
+	await get_tree().create_timer(0.15).timeout
+	get_tree().quit()
+
+# Shutdown client (called when client exits)
+func shutdown_client() -> void:
+	if multiplayer.is_server():
+		return  # Not a client
+	
+	print("Client shutting down...")
+	is_shutting_down = true
+	
+	# Clean up all player nodes
+	var scene = get_tree().current_scene
+	if scene:
+		for child in scene.get_children():
+			if child and child.name.begins_with("Player_"):
+				child.call_deferred("queue_free")
+	
+	# Disconnect from server gracefully
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+	
+	# Quit after a delay to ensure all input events finish
 	await get_tree().create_timer(0.15).timeout
 	get_tree().quit()
 

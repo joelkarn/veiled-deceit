@@ -34,7 +34,7 @@ const SYNC_INTERVAL: float = 0.01
 
 # Client-to-server position update timer
 var position_update_timer: float = 0.0
-const POSITION_UPDATE_INTERVAL: float = 0.05
+const POSITION_UPDATE_INTERVAL: float = 0.01  # Match host sync rate for smooth movement
 
 # Server reconciliation (only for very large errors - client is authoritative)
 var last_server_position: Vector3 = Vector3.ZERO
