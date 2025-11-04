@@ -177,6 +177,7 @@ func _physics_process(delta: float) -> void:
 		if not menu_active:
 			# Collect input for local player
 			input_buffer["movement"] = Input.get_vector("left", "right", "forward", "backward")
+			input_buffer["yaw"] = Input.get_axis("rotate_left", "rotate_right")
 			input_buffer["jump"] = Input.is_action_just_pressed("jump")
 			input_buffer["speed_multiplier"] = 0.5 if Input.is_action_pressed("backward") else 1.0
 			
