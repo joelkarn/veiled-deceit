@@ -10,11 +10,11 @@ var is_shutting_down: bool = false
 
 # Spawn points for players (5 locations)
 var spawn_points = [
-	Vector3(-0, 0, 0),  # Current player position
-	Vector3(5, 0, 4.3177),
-	Vector3(-5, 0, 4.3177),
+	Vector3(0, 0, 0),
+	Vector3(10, 0, 0),
+	Vector3(-10, 0, 0),
 	Vector3(0, 0, 10),
-	Vector3(0, 0, -2)
+	Vector3(0, 0, -10)
 ]
 
 @onready var player_scene = load("res://scenes/player.tscn")

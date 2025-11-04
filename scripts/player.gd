@@ -14,6 +14,8 @@ var is_host: bool = false
 @export var pitch_max_deg := 20.0
 var _pitch := 0.0
 
+@export var key_yaw_speed_deg := 180.0
+
 @export var max_health: float = 100.0
 @export var health: float = 100.0
 
@@ -180,6 +182,10 @@ func _physics_process(delta: float) -> void:
 			input_buffer["jump"] = Input.is_action_just_pressed("jump")
 			input_buffer["speed_multiplier"] = 0.5 if Input.is_action_pressed("backward") else 1.0
 			
+			if _yaw_key_active:
+				var yaw_axis := Input.get_axis("rotate_right", "rotate_left")
+				rotate_y(deg_to_rad(key_yaw_speed_deg) * yaw_axis * delta)
+			
 			# Process movement immediately (client-side authority - includes jump)
 			process_movement(delta)
 			input_buffer["jump"] = false
@@ -189,10 +195,7 @@ func _physics_process(delta: float) -> void:
 			if position_update_timer >= POSITION_UPDATE_INTERVAL:
 				position_update_timer = 0.0
 				send_position_update_to_server()
-			
-			# Send camera rotation for server display (no movement processing)
-			if input_buffer["camera_rotation"] != Vector2.ZERO:
-				send_camera_rotation_to_server()
+
 			
 			# Reset camera rotation after sending (prevents drift)
 			input_buffer["camera_rotation"] = Vector2.ZERO
@@ -232,6 +235,9 @@ func _physics_process(delta: float) -> void:
 		if sync_timer >= SYNC_INTERVAL:
 			sync_timer = 0.0
 			sync_player_state()
+
+func _yaw_key_active() -> bool:
+	return Input.is_action_pressed("rotate_left") or Input.is_action_pressed("rotate_right")
 
 func process_movement(delta: float) -> void:
 	var speed_multiplier = input_buffer.get("speed_multiplier", 1.0)
@@ -482,9 +488,10 @@ func stop_movement(delta):
 	velocity.z = 0.0
 	move_and_slide()
 	
-func handle_mouse_motion(event):
-	# Rotate player (horizontal)
-	rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
+func handle_mouse_motion(event) -> void:
+	# Rotate player (yaw)
+	if not _yaw_key_active():
+		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
 	
 	# Rotate camera (look up and down)
 	var delta_pitch_deg: float = -event.relative.y * sens_vertical
@@ -567,6 +574,7 @@ func process_player_input(input_data: Dictionary) -> void:
 	
 	if input_data.has("camera_rotation"):
 		var rotation_delta = input_data["camera_rotation"]
+		# TODO: figure out whether I need to add something for _yaw_key_active here
 		rotate_y(deg_to_rad(-rotation_delta.x * sens_horizontal))
 		var delta_pitch = -rotation_delta.y * sens_vertical
 		_pitch += deg_to_rad(delta_pitch)
@@ -662,7 +670,7 @@ func send_position_update_to_server() -> void:
 @rpc("any_peer", "call_local", "unreliable")
 func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 	if not multiplayer.is_server():
-		return  # Only server processes
+		return
 	
 	# Don't process if shutting down
 	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
@@ -674,7 +682,7 @@ func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 	if player and player.has_method("validate_client_position_state"):
 		player.validate_client_position_state(state)
 
-# Server accepts client position update (client is fully authoritative)
+# Server accepts client position update
 func validate_client_position_state(state: Dictionary) -> void:
 	if not multiplayer.is_server() or is_local_player:
 		return
@@ -691,33 +699,15 @@ func validate_client_position_state(state: Dictionary) -> void:
 	last_validated_rotation = rotation.y
 	last_validation_time = Time.get_ticks_msec() / 1000.0
 
-# Send camera rotation to server (for display only)
-func send_camera_rotation_to_server() -> void:
-	if not is_local_player:
-		return
-	
-	var rotation_data = {"camera_rotation": input_buffer["camera_rotation"]}
-	
-	if multiplayer.is_server():
-		var rotation_delta = rotation_data["camera_rotation"]
-		rotate_y(deg_to_rad(-rotation_delta.x * sens_horizontal))
-		var delta_pitch = -rotation_delta.y * sens_vertical
-		_pitch += deg_to_rad(delta_pitch)
-		_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
-		camera_mount.rotation.x = _pitch
-	else:
-		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
-		if network_manager:
-			network_manager.rpc_id(1, "receive_camera_rotation", player_id, rotation_data)
-
-# Server reconciliation for local player (only for very large errors)
+# Snaps player back to server position if distance is too large
 func _apply_server_reconciliation(delta: float) -> void:
+	return
 	if last_server_position == Vector3.ZERO:
 		return
 	
 	var position_error = position.distance_to(last_server_position)
 	
-	# Only reconcile for very large errors (teleporting/desync)
+	# Don't care about small distances
 	if position_error < position_error_threshold:
 		return
 	
