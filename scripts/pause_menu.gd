@@ -6,7 +6,7 @@ extends Control
 
 func _ready() -> void:
 	visible = false
-	mouse_filter = Control.MOUSE_FILTER_STOP  # Ensure we can receive mouse input
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	settings_button.pressed.connect(_on_settings_pressed)
 	exit_button.pressed.connect(_on_exit_pressed)
 	
@@ -21,20 +21,46 @@ func _ready() -> void:
 		ui_manager.menu_closed.connect(_on_menu_closed)
 
 func _on_menu_opened() -> void:
+	# Check if we're shutting down to prevent crashes
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	visible = true
 	settings_menu.visible = false
-	# Show the buttons when menu is opened (unless settings is open)
 	if not settings_menu.visible:
 		$VBoxContainer.visible = true
 
 func _on_menu_closed() -> void:
+	# Check if we're shutting down to prevent crashes
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	visible = false
 	settings_menu.visible = false
 
 func _on_settings_pressed() -> void:
+	# Check if we're shutting down to prevent crashes
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	settings_menu.visible = true
-	# Hide the buttons when settings menu is open
 	$VBoxContainer.visible = false
 
 func _on_exit_pressed() -> void:
-	get_tree().quit()
+	# Check if we're shutting down to prevent crashes
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
+	# If we're the host, properly shut down the server first
+	if network_manager and multiplayer.is_server():
+		network_manager.shutdown_host()
+	else:
+		# Client: Disconnect gracefully before quitting
+		if network_manager:
+			network_manager.shutdown_client()
+		else:
+			get_tree().quit()
