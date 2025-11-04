@@ -30,21 +30,20 @@ var input_buffer = {
 
 # Network state sync
 var sync_timer: float = 0.0
-const SYNC_INTERVAL: float = 0.05  # ~20 Hz - Lower frequency for non-competitive games, reduces network load
+const SYNC_INTERVAL: float = 0.01
 
-# Client-to-server position update timer (for local players)
+# Client-to-server position update timer
 var position_update_timer: float = 0.0
-const POSITION_UPDATE_INTERVAL: float = 0.05  # ~20 Hz - Send position updates to server
+const POSITION_UPDATE_INTERVAL: float = 0.05
 
-# Server reconciliation for local player (disabled - client is fully authoritative for movement)
+# Server reconciliation (only for very large errors - client is authoritative)
 var last_server_position: Vector3 = Vector3.ZERO
-var position_error_threshold: float = 10.0  # Only reconcile for very large errors (teleporting/desync)
-var smooth_correction_speed: float = 3.0  # How fast to correct position (units per second) - very gentle
+var position_error_threshold: float = 10.0
 
-# Server-side position validation
+# Server-side position validation (unused but kept for potential future use)
 var last_validated_position: Vector3 = Vector3.ZERO
 var last_validated_rotation: float = 0.0
-var last_validation_time: float = 0.0  # Time in seconds since game start
+var last_validation_time: float = 0.0
 
 # Remote player interpolation (for non-local players on clients)
 var target_position: Vector3 = Vector3.ZERO
@@ -92,77 +91,57 @@ var melee_debug_mat_active: StandardMaterial3D
 var ui_manager: Node
 
 func _ready() -> void:
-	print("=== PLAYER _ready() ===")
-	print("  Player ID: ", player_id)
-	print("  Is local: ", is_local_player)
-	print("  Is host: ", is_host)
-	
 	health = max_health
-	velocity = Vector3.ZERO  # Initialize velocity to zero
-	last_server_position = position  # Initialize last server position
-	target_position = position  # Initialize target position for remote players
-	has_target_state = false  # Reset state flag
+	velocity = Vector3.ZERO
+	last_server_position = position
+	target_position = position
+	has_target_state = false
 	
 	# Initialize validation state
 	last_validated_position = position
 	last_validated_rotation = rotation.y
-	last_validation_time = Time.get_ticks_msec() / 1000.0  # Convert to seconds
+	last_validation_time = Time.get_ticks_msec() / 1000.0
 	
-	# Set multiplayer authority - host has authority over all player instances
-	# Use call_deferred to ensure multiplayer is initialized first
+	# Set multiplayer authority
 	call_deferred("_set_multiplayer_authority")
-	
-	# Debug: Log initial position
-	print("  Initial position set to: ", position)
 	
 	if camera_mount:
 		_pitch = camera_mount.rotation.x
 	
 	ui_manager = get_node_or_null("../UIManager")
 	
-	print("  Creating melee area...")
 	_create_melee_area()
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
-	print("  Player _ready() complete!")
 	
-	# Setup camera after everything is ready (for local player)
-	# Use call_deferred to ensure @onready variables are initialized
+	# Setup camera after everything is ready
 	call_deferred("_setup_camera")
 
 func _setup_camera() -> void:
-	# Setup camera after all @onready variables are initialized
 	if camera:
 		camera.fov = fov
-		# Only local player should see their camera
-		if is_local_player:
-			camera.current = true
-			print("  Camera enabled for local player (Player ID: ", player_id, ")")
-		else:
-			camera.current = false
-			print("  Disabled camera for remote player (Player ID: ", player_id, ")")
-	else:
-		print("  WARNING: Camera not found! (Player ID: ", player_id, ")")
-	
-	# Also ensure camera_mount pitch is set
+		camera.current = is_local_player
 	if camera_mount:
 		_pitch = camera_mount.rotation.x
 
 func _set_multiplayer_authority() -> void:
-	# Set multiplayer authority - only if multiplayer is active and we're in the tree
-	if not is_inside_tree():
-		print("  WARNING: Node not in tree yet, skipping authority setup")
+	if not is_inside_tree() or multiplayer.multiplayer_peer == null:
 		return
-		
-	if multiplayer.multiplayer_peer != null:
-		set_multiplayer_authority(1)  # Host has authority
-		print("  Set multiplayer authority to host (1)")
-	else:
-		print("  WARNING: Multiplayer not initialized, skipping authority setup")
+	
+	set_multiplayer_authority(1)  # Host has authority
 
 func _input(event: InputEvent) -> void:
 	# Only local player processes input
 	if not is_local_player:
+		return
+	
+	# Don't process input if multiplayer is disconnected
+	if multiplayer.multiplayer_peer == null:
+		return
+	
+	# Don't process input if network manager is shutting down
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
 		return
 	
 	# Don't process input if menu is open
@@ -179,6 +158,15 @@ func _input(event: InputEvent) -> void:
 		auto_attack()
 
 func _physics_process(delta: float) -> void:
+	# Don't process if multiplayer is disconnected (prevents crashes during shutdown)
+	if multiplayer.multiplayer_peer == null:
+		return
+	
+	# Don't process if network manager is shutting down
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	# Stop movement if menu
 	var menu_active = ui_manager and ui_manager.is_menu_active()
 	if menu_active and is_local_player:
@@ -259,12 +247,6 @@ func process_movement(delta: float) -> void:
 	var rotation_basis = Basis.from_euler(Vector3(0, player_rotation_y, 0))
 	var direction: Vector3 = (rotation_basis * Vector3(input_dir.x, 0.0, input_dir.y))
 	
-	# Debug: Log movement for remote players on host
-	#if multiplayer.is_server() and not is_local_player:
-		#if input_dir != Vector2.ZERO:
-			#print("  [HOST] Processing movement for Player ", player_id, ": input_dir=", input_dir, " rotation_y=", player_rotation_y, " direction=", direction)
-
-
 	# In air (fall or jump)
 	if not is_on_floor():
 		# Apply gravity only when in air
@@ -511,15 +493,11 @@ func handle_mouse_motion(event):
 	camera_mount.rotation.x = _pitch
 
 func take_damage(amount: float, attacker_id: int = 0) -> void:
-	# Only host processes damage
 	if not multiplayer.is_server():
 		return
 	
 	health -= amount
-	health = max(0, health)  # Clamp to 0
-	print("Player ", player_id, " took ", amount, " damage. Health: ", health)
-	
-	# Sync health to all clients
+	health = max(0, health)
 	sync_health()
 	
 	if health <= 0:
@@ -529,9 +507,6 @@ func die() -> void:
 	if not multiplayer.is_server():
 		return
 	
-	print("Player ", player_id, " died!")
-	
-	# Reset health
 	health = max_health
 	
 	# Get spawn position for this player
@@ -541,16 +516,13 @@ func die() -> void:
 		var spawn_index = (player_id - 1) % network_manager.spawn_points.size()
 		spawn_pos = network_manager.spawn_points[spawn_index]
 	
-	# Reset position to spawn
 	position = spawn_pos
 	velocity = Vector3.ZERO
 	
-	# Sync death and respawn to all clients
 	rpc("sync_death_and_respawn", spawn_pos, health)
 
 @rpc("authority", "call_remote", "reliable")
 func sync_death_and_respawn(spawn_pos: Vector3, new_health: float) -> void:
-	print("Player ", player_id, " died and respawned at ", spawn_pos)
 	health = new_health
 	position = spawn_pos
 	velocity = Vector3.ZERO
@@ -565,67 +537,34 @@ func sync_health() -> void:
 @rpc("authority", "call_remote", "reliable")
 func update_health(new_health: float) -> void:
 	health = new_health
-	print("Player ", player_id, " health updated to ", health)
 
 # ----------------------------
 # Network Methods
 # ----------------------------
 
-# Send input to host (for attacks and camera rotation only - movement is via position updates)
+# Send input to host (for attacks only - movement is via position updates)
 func send_player_input_keep_jump() -> void:
-	if not is_local_player:
+	if not is_local_player or not input_buffer.get("attack", false):
 		return
 	
-	# Only send attacks and camera rotation - movement is fully client-authoritative
-	# Camera rotation is handled separately via send_camera_rotation_to_server()
-	# But we can still send attacks here if needed
-	if input_buffer.get("attack", false):
-		var input_copy = {
-			"attack": true,
-			"player_rotation_y": rotation.y  # Send rotation for display
-		}
-		
-		if multiplayer.is_server():
-			# We are the host, process directly
-			process_player_input(input_copy)
-		else:
-			# Send to host's NetworkManager
-			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
-			if network_manager:
-				network_manager.rpc_id(1, "receive_player_input", player_id, input_copy)
-		
-		input_buffer["attack"] = false
-
-# Send input to host (for network sync - resets all one-time inputs)
-func send_player_input() -> void:
-	if not is_local_player:
-		return
-	
-	var input_copy = input_buffer.duplicate()
-	# Reset one-time inputs
-	input_copy.attack = false
-	input_copy.jump = false
+	var input_copy = {
+		"attack": true,
+		"player_rotation_y": rotation.y
+	}
 	
 	if multiplayer.is_server():
-		# We are the host, process directly
 		process_player_input(input_copy)
 	else:
-		# Send to host's NetworkManager
 		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
 		if network_manager:
 			network_manager.rpc_id(1, "receive_player_input", player_id, input_copy)
 	
-	# Reset one-time inputs
 	input_buffer["attack"] = false
-	input_buffer["jump"] = false
 
-# Host processes input from clients (for attacks only - movement is handled via position updates)
-# This is called by NetworkManager for remote players, or directly for local host player
+# Host processes input from clients (for attacks and camera rotation only)
 func process_player_input(input_data: Dictionary) -> void:
-	# Only process attacks - movement is fully client-authoritative via position updates
 	input_buffer["attack"] = input_data.get("attack", false)
 	
-	# Process camera rotation if provided (for display)
 	if input_data.has("camera_rotation"):
 		var rotation_delta = input_data["camera_rotation"]
 		rotate_y(deg_to_rad(-rotation_delta.x * sens_horizontal))
@@ -634,18 +573,16 @@ func process_player_input(input_data: Dictionary) -> void:
 		_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
 		camera_mount.rotation.x = _pitch
 	
-	# Update rotation if provided (for display)
 	if input_data.has("player_rotation_y"):
 		rotation.y = input_data["player_rotation_y"]
 
 # Host syncs player state to all clients
-# Optimized for non-competitive games: lower frequency, smaller corrections
 func sync_player_state() -> void:
-	if not multiplayer.is_server():
+	if not multiplayer.is_server() or not is_inside_tree():
 		return
 	
-	# Only sync if we're actually in the scene tree (spawned)
-	if not is_inside_tree():
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
 		return
 	
 	var state = {
@@ -658,8 +595,6 @@ func sync_player_state() -> void:
 		"animation": animation_player.current_animation if animation_player else "idle"
 	}
 	
-	# Use unreliable for frequent position updates (drops packets gracefully)
-	# Lower frequency (20Hz) reduces network load and potential crash issues
 	rpc("update_player_state", state)
 
 # Clients receive state from host
@@ -669,36 +604,28 @@ func update_player_state(state: Dictionary) -> void:
 	if not is_inside_tree():
 		return
 	
+	# Don't process if shutting down
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	var server_pos = state.get("position", position)
 	
 	if is_local_player:
-		# Store server position for reconciliation (client-side prediction with correction)
+		# Store server position for reconciliation (client is authoritative for movement)
 		last_server_position = server_pos
-		# Don't immediately overwrite - let reconciliation handle it smoothly
-		# Camera rotation is 100% client-side for local players - don't overwrite from server
-		# This prevents the dizzy camera re-adjusting issue
-		# MOVEMENT is 100% client-authoritative - don't overwrite velocity or is_jumping from server
-		# This prevents server from interfering with jumps and movement
-		# Only update non-movement state
 		health = state.get("health", health)
-		# DO NOT overwrite velocity or is_jumping - client is authoritative for movement!
-		# velocity = state.get("velocity", velocity)  # REMOVED - client authoritative
-		# is_jumping = state.get("is_jumping", false)  # REMOVED - client authoritative
-		
-		# Don't log position differences - reduces console spam and potential crash issues
-		# Position reconciliation will handle any differences smoothly
 	else:
-		# Remote players: store target state for interpolation in _physics_process
+		# Remote players: store target state for interpolation
 		var new_target_position = state.get("position", position)
 		var distance = position.distance_to(new_target_position)
 		
 		target_position = new_target_position
 		target_rotation_y = state.get("rotation_y", rotation.y)
 		target_camera_pitch = state.get("camera_pitch", camera_mount.rotation.x)
-		target_velocity = state.get("velocity", Vector3.ZERO)  # Always get velocity, default to zero
+		target_velocity = state.get("velocity", Vector3.ZERO)
 		
-		# On first state update or large position difference, snap to position immediately
-		# This prevents players from flying off into space on spawn
+		# Snap to position on first update or large difference
 		var was_first_update = not has_target_state
 		has_target_state = true
 		
@@ -706,18 +633,14 @@ func update_player_state(state: Dictionary) -> void:
 			position = target_position
 			rotation.y = target_rotation_y
 			camera_mount.rotation.x = target_camera_pitch
-			velocity = Vector3.ZERO  # Reset velocity when snapping
+			velocity = Vector3.ZERO
 		
-		# Update health and jump state immediately (these don't need interpolation)
 		health = state.get("health", health)
 		is_jumping = state.get("is_jumping", false)
-		
-		# Don't update animation from server state - animation is determined by velocity
-		# Animation will be updated in _interpolate_remote_player() based on actual movement
 
 # Send position update to server (client-side authority)
 func send_position_update_to_server() -> void:
-	if not is_local_player:
+	if not is_local_player or multiplayer.multiplayer_peer == null:
 		return
 	
 	var state = {
@@ -729,10 +652,8 @@ func send_position_update_to_server() -> void:
 	}
 	
 	if multiplayer.is_server():
-		# We are the host, validate our own position
 		validate_client_position_state(state)
 	else:
-		# Send to server for validation
 		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
 		if network_manager:
 			network_manager.rpc_id(1, "receive_client_position_update", player_id, state)
@@ -743,49 +664,41 @@ func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return  # Only server processes
 	
+	# Don't process if shutting down
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	# Find the player instance
 	var player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
 	if player and player.has_method("validate_client_position_state"):
 		player.validate_client_position_state(state)
 
-# Server accepts client position update (client is fully authoritative - no validation)
+# Server accepts client position update (client is fully authoritative)
 func validate_client_position_state(state: Dictionary) -> void:
-	if not multiplayer.is_server():
+	if not multiplayer.is_server() or is_local_player:
 		return
-	
-	# Only accept updates for remote players (not local host player)
-	if is_local_player:
-		return
-	
-	# Client is fully authoritative - just accept their position, rotation, and state
-	# No validation or prediction - just for display purposes
-	var client_pos = state.get("position", position)
-	var client_rot = state.get("rotation_y", rotation.y)
-	var client_velocity = state.get("velocity", velocity)
 	
 	# Accept client state directly (client is authoritative)
-	position = client_pos
-	rotation.y = client_rot
+	position = state.get("position", position)
+	rotation.y = state.get("rotation_y", rotation.y)
 	camera_mount.rotation.x = state.get("camera_pitch", camera_mount.rotation.x)
-	velocity = client_velocity
+	velocity = state.get("velocity", velocity)
 	is_jumping = state.get("is_jumping", is_jumping)
 	
-	# Update tracking state (for potential future use, but not for validation)
+	# Update tracking state
 	last_validated_position = position
 	last_validated_rotation = rotation.y
 	last_validation_time = Time.get_ticks_msec() / 1000.0
 
-# Send camera rotation to server (for display only, no movement processing)
+# Send camera rotation to server (for display only)
 func send_camera_rotation_to_server() -> void:
 	if not is_local_player:
 		return
 	
-	var rotation_data = {
-		"camera_rotation": input_buffer["camera_rotation"]
-	}
+	var rotation_data = {"camera_rotation": input_buffer["camera_rotation"]}
 	
 	if multiplayer.is_server():
-		# We are the host, apply camera rotation directly
 		var rotation_delta = rotation_data["camera_rotation"]
 		rotate_y(deg_to_rad(-rotation_delta.x * sens_horizontal))
 		var delta_pitch = -rotation_delta.y * sens_vertical
@@ -793,107 +706,71 @@ func send_camera_rotation_to_server() -> void:
 		_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
 		camera_mount.rotation.x = _pitch
 	else:
-		# Send to server for display
 		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
 		if network_manager:
 			network_manager.rpc_id(1, "receive_camera_rotation", player_id, rotation_data)
 
-# Apply server reconciliation for local player on clients
-# DISABLED for normal movement - client is fully authoritative
-# Only reconciles for very large errors (teleporting/desync) to prevent cheating
+# Server reconciliation for local player (only for very large errors)
 func _apply_server_reconciliation(delta: float) -> void:
 	if last_server_position == Vector3.ZERO:
-		return  # Haven't received server position yet
+		return
 	
 	var position_error = position.distance_to(last_server_position)
 	
-	# Only reconcile for very large errors (teleporting/desync) - client is authoritative for normal movement
-	# This prevents cheating but doesn't interfere with normal movement
+	# Only reconcile for very large errors (teleporting/desync)
 	if position_error < position_error_threshold:
-		# Normal movement range - client is authoritative, no correction needed
 		return
 	
-	# Only correct for very large errors (likely cheating or desync)
+	# Snap to server position for very large errors
 	if position_error > position_error_threshold:
-		# Error is too large (teleporting/desync) - snap immediately
 		position = last_server_position
-		# DO NOT reset velocity - client is authoritative for movement
-		# velocity = Vector3.ZERO  # REMOVED - client authoritative
 
 # Update visuals and animation for remote players on host
-# Remote players on host have their position/velocity updated via validate_client_position_state()
-# This function updates visuals rotation and animation based on velocity
 func _update_remote_player_visuals_and_animation(delta: float) -> void:
-	# Calculate movement direction from velocity for visuals rotation and animation
 	var horizontal_velocity = Vector3(velocity.x, 0, velocity.z)
 	var movement_magnitude = horizontal_velocity.length()
 	
-	# Rotate visuals to face movement direction (if moving)
 	if movement_magnitude > 0.1:
-		var movement_direction = horizontal_velocity.normalized()
-		# Rotate visuals to face movement direction (same as local player)
-		visuals.look_at(position + movement_direction)
+		visuals.look_at(position + horizontal_velocity.normalized())
 	
-	# Update animation based on movement (idle vs running)
-	# This ensures animation matches actual movement direction
 	if animation_player:
 		if movement_magnitude > 0.1:
-			# Player is moving - play running animation
-			if animation_player.current_animation != "running":
-				if animation_player.has_animation("running"):
-					animation_player.play("running")
+			if animation_player.current_animation != "running" and animation_player.has_animation("running"):
+				animation_player.play("running")
 		else:
-			# Player is not moving - play idle animation
-			if animation_player.current_animation != "idle":
-				if animation_player.has_animation("idle"):
-					animation_player.play("idle")
+			if animation_player.current_animation != "idle" and animation_player.has_animation("idle"):
+				animation_player.play("idle")
 
-# Interpolate remote player toward target state (called in _physics_process with delta)
+# Interpolate remote player toward target state
 func _interpolate_remote_player(delta: float) -> void:
 	if not has_target_state:
 		return
 	
-	# Interpolate position smoothly (direct position update, no physics)
-	# For remote players, we directly set position based on server state
+	# Interpolate position
 	var distance = position.distance_to(target_position)
 	if distance > 0.01:
 		var max_correction = remote_interpolation_speed * delta
-		if distance > max_correction:
-			position = position.move_toward(target_position, max_correction)
-		else:
-			position = target_position
+		position = position.move_toward(target_position, min(distance, max_correction))
 	else:
 		position = target_position
 	
-	# Interpolate rotation smoothly
+	# Interpolate rotation
 	rotation.y = lerp_angle(rotation.y, target_rotation_y, 0.2)
 	camera_mount.rotation.x = lerp(camera_mount.rotation.x, target_camera_pitch, 0.2)
 	
-	# Calculate movement direction from velocity for visuals rotation and animation
-	# Use target_velocity (from server) to determine movement direction
+	# Update visuals and animation based on movement direction
 	var horizontal_velocity = Vector3(target_velocity.x, 0, target_velocity.z)
 	var movement_magnitude = horizontal_velocity.length()
 	
-	# Rotate visuals to face movement direction (if moving)
 	if movement_magnitude > 0.1:
-		var movement_direction = horizontal_velocity.normalized()
-		# Rotate visuals to face movement direction (same as local player)
-		visuals.look_at(position + movement_direction)
+		visuals.look_at(position + horizontal_velocity.normalized())
 	
-	# Update animation based on movement (idle vs running)
-	# This ensures animation matches actual movement direction
 	if animation_player:
 		if movement_magnitude > 0.1:
-			# Player is moving - play running animation
-			if animation_player.current_animation != "running":
-				if animation_player.has_animation("running"):
-					animation_player.play("running")
+			if animation_player.current_animation != "running" and animation_player.has_animation("running"):
+				animation_player.play("running")
 		else:
-			# Player is not moving - play idle animation
-			if animation_player.current_animation != "idle":
-				if animation_player.has_animation("idle"):
-					animation_player.play("idle")
+			if animation_player.current_animation != "idle" and animation_player.has_animation("idle"):
+				animation_player.play("idle")
 	
-	# Reset velocity to zero since we're directly controlling position
-	# This prevents any physics from interfering with our position interpolation
 	velocity = Vector3.ZERO

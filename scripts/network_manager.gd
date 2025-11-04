@@ -5,6 +5,9 @@ extends Node
 const PORT = 7777
 const MAX_PLAYERS = 5
 
+# Flag to track if we're shutting down (prevents crashes during cleanup)
+var is_shutting_down: bool = false
+
 # Spawn points for players (5 locations)
 var spawn_points = [
 	Vector3(-0, 0, 0),  # Current player position
@@ -46,12 +49,10 @@ func host_game() -> void:
 	if lobby:
 		lobby._on_host_started()
 	
-	# Spawn host's own player (wait a bit longer to ensure multiplayer is ready)
+	# Spawn host's own player
 	await get_tree().process_frame
-	await get_tree().process_frame  # Extra frame to ensure everything is initialized
-	print("About to spawn host player...")
+	await get_tree().process_frame
 	spawn_player(1)  # Host is always peer ID 1
-	print("Host player spawn complete!")
 
 # Client: Join server
 func join_game(ip: String) -> void:
@@ -70,60 +71,39 @@ func join_game(ip: String) -> void:
 func _on_peer_connected(peer_id: int) -> void:
 	print("Peer ", peer_id, " connected!")
 	
-	# Don't process the host's own connection (peer_id 1)
+	# Don't process the host's own connection
 	if peer_id == 1:
-		print("Ignoring host's own peer_connected signal")
 		return
 	
-	# Spawn the new player for all clients (use call_deferred to avoid blocking)
+	# Spawn the new player for all clients
 	if multiplayer.is_server():
-		# Use call_deferred to handle spawn asynchronously
 		call_deferred("_handle_new_client", peer_id)
 
-# Handle new client connection (deferred)
+# Handle new client connection
 func _handle_new_client(peer_id: int) -> void:
-	print("=== HANDLING NEW CLIENT ===")
-	print("  New client peer ID: ", peer_id)
-	print("  My peer ID: ", multiplayer.get_unique_id())
-	print("  Is server: ", multiplayer.is_server())
-	
-	# First, send all existing players to the new client
-	# Check all Player_ nodes in the scene to find existing players
+	# Send all existing players to the new client
 	var scene = get_tree().current_scene
 	if scene:
 		for child in scene.get_children():
 			if child.name.begins_with("Player_"):
-				var existing_peer_id_str = child.name.substr(7)  # Remove "Player_" prefix
-				var existing_peer_id = int(existing_peer_id_str)
+				var existing_peer_id = int(child.name.substr(7))  # Remove "Player_" prefix
 				
-				# Don't send the new client's own player (they'll spawn themselves)
+				# Don't send the new client's own player
 				if existing_peer_id != peer_id:
-					print("  Sending existing player ", existing_peer_id, " to new client ", peer_id, " at position ", child.position)
 					rpc_id(peer_id, "sync_player_spawn", existing_peer_id, child.position)
 	
-	# Small delay to ensure spawn messages are sent
+	# Wait a frame then spawn the new player
 	await get_tree().process_frame
-	print("  Frame processed, now spawning new player")
-	
-	# Now spawn the new player
 	spawn_player(peer_id)
-	print("  Finished handling new client")
 
 # Called when a peer disconnects
 func _on_peer_disconnected(peer_id: int) -> void:
-	print("=== PEER DISCONNECTED ===")
-	print("  Peer ID: ", peer_id)
-	print("  My peer ID: ", multiplayer.get_unique_id())
-	print("  Is server: ", multiplayer.is_server())
-	print("  Multiplayer peer: ", multiplayer.multiplayer_peer != null)
+	print("Peer ", peer_id, " disconnected")
 	
 	# Remove player from scene
 	var player_node = get_node_or_null("../Player_" + str(peer_id))
 	if player_node:
-		print("  Removing player node from scene")
 		player_node.queue_free()
-	else:
-		print("  Player node not found for peer ", peer_id)
 
 # Client: Called when successfully connected to server
 func _on_connected_to_server() -> void:
@@ -140,13 +120,30 @@ func _on_connection_failed() -> void:
 
 # Client: Called when server disconnects
 func _on_server_disconnected() -> void:
-	print("=== SERVER DISCONNECTED (CLIENT SIDE) ===")
-	print("  My peer ID: ", multiplayer.get_unique_id())
-	print("  Multiplayer peer was: ", multiplayer.multiplayer_peer != null)
+	print("Server disconnected - shutting down client...")
+	
+	# Set shutdown flag immediately to prevent any further processing
+	is_shutting_down = true
+	
+	# Clean up all player nodes
+	var scene = get_tree().current_scene
+	if scene:
+		for child in scene.get_children():
+			if child and child.name.begins_with("Player_"):
+				child.call_deferred("queue_free")
+	
+	# Clean up multiplayer after cleaning up nodes (prevents RPC errors)
 	multiplayer.multiplayer_peer = null
+	
+	# Shutdown game
+	call_deferred("_shutdown_game_immediate")
 
 # Spawn a player for a given peer_id
 func spawn_player(peer_id: int) -> void:
+	# Don't spawn if we're shutting down
+	if is_shutting_down:
+		return
+	
 	# Verify multiplayer is initialized
 	if multiplayer.multiplayer_peer == null:
 		print("ERROR: Cannot spawn player - multiplayer not initialized!")
@@ -155,8 +152,6 @@ func spawn_player(peer_id: int) -> void:
 	var is_server = multiplayer.is_server()
 	var my_peer_id = multiplayer.get_unique_id()
 	var is_local = (peer_id == my_peer_id)
-	
-	print("Spawning player for peer ", peer_id, " (my peer_id: ", my_peer_id, ", local: ", is_local, ", server: ", is_server, ")")
 	
 	# Determine spawn position
 	var spawn_index = (peer_id - 1) % spawn_points.size()
@@ -184,28 +179,24 @@ func spawn_player(peer_id: int) -> void:
 		return
 		
 	parent.add_child(player, true)  # force_readable_name = true for networking
-	print("Player spawned at position: ", spawn_position)
 	
 	# If we're the server, tell all clients to spawn this player
-	# Use call_deferred to ensure it happens after the player is fully added
 	if is_server:
-		print("  Server: Scheduling spawn broadcast for all clients")
 		call_deferred("_send_spawn_to_clients", peer_id, spawn_position)
 
-# Helper function to send spawn to clients (deferred)
+# Send spawn to all clients
 func _send_spawn_to_clients(peer_id: int, position: Vector3) -> void:
-	print("=== SENDING SPAWN TO CLIENTS ===")
-	print("  Peer ID: ", peer_id)
-	print("  Position: ", position)
-	print("  Is server: ", multiplayer.is_server())
 	rpc("sync_player_spawn", peer_id, position)
-	print("  RPC sent!")
 
 # Clients send their input to host
 @rpc("any_peer", "call_local", "reliable")
 func receive_player_input(peer_id: int, input_data: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return  # Only host processes
+	
+	# Don't process if shutting down
+	if is_shutting_down:
+		return
 	
 	# Find the player instance for this peer_id
 	var player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
@@ -218,6 +209,10 @@ func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return  # Only host processes
 	
+	# Don't process if shutting down
+	if is_shutting_down:
+		return
+	
 	# Find the player instance for this peer_id
 	var player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
 	if player and player.has_method("validate_client_position_state"):
@@ -228,6 +223,10 @@ func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 func receive_camera_rotation(peer_id: int, rotation_data: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return  # Only host processes
+	
+	# Don't process if shutting down
+	if is_shutting_down:
+		return
 	
 	# Find the player instance for this peer_id
 	var player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
@@ -243,6 +242,10 @@ func receive_camera_rotation(peer_id: int, rotation_data: Dictionary) -> void:
 func process_damage_request(attacker_id: int, body_name: String, body_peer_id: int, damage: float) -> void:
 	if not multiplayer.is_server():
 		return  # Only host processes
+	
+	# Don't process if shutting down
+	if is_shutting_down:
+		return
 	
 	# Find the body to damage
 	var body = null
@@ -260,52 +263,75 @@ func process_damage_request(attacker_id: int, body_name: String, body_peer_id: i
 	else:
 		print("Host: Could not find target for damage: ", body_name, " (peer_id: ", body_peer_id, ")")
 
+# Shutdown game when server disconnects
+func _shutdown_game_immediate() -> void:
+	if not is_shutting_down:
+		return
+	
+	# Quit after a delay to ensure all input events finish processing
+	call_deferred("_do_quit")
+
+# Actually quit the game (called deferred to avoid crashes)
+func _do_quit() -> void:
+	if not is_shutting_down:
+		return
+	
+	# Wait a bit longer to ensure all input events are processed
+	await get_tree().create_timer(0.15).timeout
+	get_tree().quit()
+
+# Shutdown host server (called when host exits)
+func shutdown_host() -> void:
+	if not multiplayer.is_server():
+		return
+	
+	print("Host shutting down...")
+	is_shutting_down = true
+	
+	# Clean up all player nodes
+	var scene = get_tree().current_scene
+	if scene:
+		for child in scene.get_children():
+			if child and child.name.begins_with("Player_"):
+				child.call_deferred("queue_free")
+	
+	# Close server connection (triggers server_disconnected on all clients)
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+	
+	# Quit after a delay to ensure all input events finish
+	await get_tree().create_timer(0.15).timeout
+	get_tree().quit()
+
 # Remote call: Sync player spawn to all clients
 @rpc("authority", "call_remote", "reliable")
 func sync_player_spawn(peer_id: int, position: Vector3) -> void:
+	if is_shutting_down:
+		return
+	
 	# Only spawn if we don't already have this player
 	var existing_player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
 	if existing_player:
-		print("Player ", peer_id, " already exists, skipping spawn")
 		return
 	
 	var my_peer_id = multiplayer.get_unique_id()
 	var is_local = (peer_id == my_peer_id)
 	var is_server = multiplayer.is_server()
 	
-	print("Client: Syncing spawn for player ", peer_id, " (my peer_id: ", my_peer_id, ", local: ", is_local, ")")
-	
 	# Use call_deferred to avoid issues with spawning during network callbacks
 	call_deferred("_do_spawn_player", peer_id, position, is_local, is_server)
 
-# Actually spawn the player (deferred)
+# Spawn the player (deferred)
 func _do_spawn_player(peer_id: int, position: Vector3, is_local: bool, is_server: bool) -> void:
-	print("=== DOING SPAWN PLAYER (DEFERRED) ===")
-	print("  Peer ID: ", peer_id)
-	print("  Position: ", position)
-	print("  Is local: ", is_local)
-	print("  Is server: ", is_server)
-	print("  My peer ID: ", multiplayer.get_unique_id())
-	
 	var player = player_scene.instantiate()
 	player.name = "Player_" + str(peer_id)
 	player.position = position
-	
-	# Set network properties (they're exported, so they exist)
 	player.player_id = peer_id
 	player.is_local_player = is_local
 	player.is_host = is_server
 	
-	print("  Player instantiated, properties set")
-	
 	var parent = get_tree().current_scene
 	if parent:
-		print("  Adding player to scene tree...")
 		parent.add_child(player, true)
-		print("  Player added to scene!")
-		# Wait one frame for player to be fully initialized
 		await get_tree().process_frame
-		print("  Player initialized!")
-		print("Client: Successfully synced player ", peer_id, " spawn at ", position)
-	else:
-		print("ERROR: Could not find scene root to add player!")
