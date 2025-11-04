@@ -701,7 +701,6 @@ func validate_client_position_state(state: Dictionary) -> void:
 
 # Snaps player back to server position if distance is too large
 func _apply_server_reconciliation(delta: float) -> void:
-	return
 	if last_server_position == Vector3.ZERO:
 		return
 	
