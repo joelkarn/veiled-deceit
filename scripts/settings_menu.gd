@@ -69,6 +69,11 @@ func _ready() -> void:
 	_update_volume_labels()
 
 func _input(event: InputEvent) -> void:
+	# Don't process input if shutting down
+	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	if network_manager and network_manager.is_shutting_down:
+		return
+	
 	# Close settings menu with ESC
 	if visible and event.is_action_pressed("ui_cancel"):
 		_on_back_pressed()
