@@ -10,6 +10,14 @@ var is_flashing := false
 
 func _ready():
 	health = max_health
+	
+	# Set collision layers (same as players):
+	# Layer 1 = Environment (ground, walls, obstacles)
+	# Layer 2 = Players/Entities
+	# Enemies should collide with environment (layer 1) but not with players/other entities (layer 2)
+	collision_layer = 2  # Enemy is on layer 2 (same as players)
+	collision_mask = 1    # Enemy only collides with layer 1 (environment)
+	
 	# Create a unique material for this enemy
 	original_material = StandardMaterial3D.new()
 	original_material.albedo_color = Color.WHITE
