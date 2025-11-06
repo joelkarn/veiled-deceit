@@ -264,6 +264,7 @@ func process_movement(delta: float) -> void:
 	var rotation_basis = Basis.from_euler(Vector3(0, player_rotation_y, 0))
 	var direction: Vector3 = (rotation_basis * Vector3(input_dir.x, 0.0, input_dir.y))
 	
+		
 	# In air (fall or jump)
 	if not is_on_floor():
 		# Apply gravity only when in air
@@ -431,8 +432,10 @@ func _create_melee_area() -> void:
 	melee_area.monitoring = false
 	melee_area.monitorable = false
 
-	# Optional: restrict to an "enemies" layer if you use layers
-	# melee_area.collision_mask = 1 << 3  # example: only layer 3
+	# Set collision mask to detect layer 2 (players/entities)
+	# Layer 1 = Environment, Layer 2 = Players/Entities
+	# We want to hit players and enemies, which are on layer 2
+	melee_area.collision_mask = 2  # Detect layer 2 (players and enemies)
 
 	# Connect signal once
 	melee_area.body_entered.connect(_on_melee_area_body_entered)
