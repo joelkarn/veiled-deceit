@@ -59,6 +59,10 @@ const SPEED := 7.0
 const GRAVITY := -45.0
 const JUMP_VELOCITY := 13.0
 
+# Soft collision constants (for entity-to-entity collision)
+const SOFT_COLLISION_RADIUS := 0.2  # Horizontal collision radius (cylinder radius)
+const SOFT_COLLISION_PUSH_SPEED := 0.5  # Constant speed to push away from other entities
+
 @export var sens_horizontal := 0.1
 @export var sens_vertical := 0.1
 @export var fov: float = 50.0  # fish eye
@@ -103,6 +107,13 @@ func _ready() -> void:
 	last_validated_position = position
 	last_validated_rotation = rotation.y
 	last_validation_time = Time.get_ticks_msec() / 1000.0
+	
+	# Set collision layers:
+	# Layer 1 = Environment (ground, walls, obstacles)
+	# Layer 2 = Players (entities)
+	# Players should collide with environment (layer 1) but not with each other (layer 2)
+	collision_layer = 2  # Player is on layer 2
+	collision_mask = 1    # Player only collides with layer 1 (environment)
 	
 	# Set multiplayer authority
 	call_deferred("_set_multiplayer_authority")
@@ -253,6 +264,7 @@ func process_movement(delta: float) -> void:
 	var rotation_basis = Basis.from_euler(Vector3(0, player_rotation_y, 0))
 	var direction: Vector3 = (rotation_basis * Vector3(input_dir.x, 0.0, input_dir.y))
 	
+		
 	# In air (fall or jump)
 	if not is_on_floor():
 		# Apply gravity only when in air
@@ -262,6 +274,10 @@ func process_movement(delta: float) -> void:
 			handle_jumping(init_jump_input, direction, input_dir, speed_multiplier)
 		else:
 			handle_falling(direction, speed_multiplier)
+		
+		# Apply soft collision push-away (only for local players, horizontal only)
+		if is_local_player:
+			_apply_soft_collision(delta)
 		
 		move_and_slide()
 		return
@@ -291,6 +307,10 @@ func process_movement(delta: float) -> void:
 		init_jump_dir.x = direction.x
 		init_jump_dir.y = direction.z
 		input_buffer["jump"] = false
+
+	# Apply soft collision push-away (only for local players, horizontal only)
+	if is_local_player:
+		_apply_soft_collision(delta)
 
 	move_and_slide()
 
@@ -330,6 +350,68 @@ func handle_falling(direction: Vector3, speed_multiplier: float) -> void:
 	velocity.z = direction.z * SPEED * 0.5 * speed_multiplier
 
 # ----------------------------
+# Soft Collision (Entity-to-Entity)
+# ----------------------------
+func _apply_soft_collision(delta: float) -> void:
+	# Only apply to local players
+	if not is_local_player:
+		return
+	
+	# Get horizontal position (XZ plane only)
+	var my_pos_horizontal = Vector2(position.x, position.z)
+	
+	# Find all other players and enemies in the scene
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+	
+	var push_away_velocity = Vector2.ZERO
+	
+	# Check all children of the scene root
+	for child in scene.get_children():
+		# Skip self
+		if child == self:
+			continue
+		
+		# Check if it's a player
+		var is_player = child.name.begins_with("Player_")
+		# Check if it's an enemy (enemies have the Enemy script)
+		var is_enemy = child.has_method("take_damage") and not is_player
+		
+		# Only process players and enemies
+		if not (is_player or is_enemy):
+			continue
+		
+		# Skip if it's not a CharacterBody3D (shouldn't happen, but safety check)
+		if not child is CharacterBody3D:
+			continue
+		
+		# Get horizontal position of other entity
+		var other_pos_horizontal = Vector2(child.position.x, child.position.z)
+		
+		# Calculate horizontal distance
+		var horizontal_distance = my_pos_horizontal.distance_to(other_pos_horizontal)
+		
+		# Check if circles overlap (2 * radius is the combined radius)
+		var combined_radius = SOFT_COLLISION_RADIUS * 2.0
+		if horizontal_distance < combined_radius and horizontal_distance > 0.0:
+			# Calculate direction away from other entity (horizontal only)
+			var direction_away = (my_pos_horizontal - other_pos_horizontal).normalized()
+			
+			# Handle edge case where positions are exactly the same (extremely rare)
+			if direction_away == Vector2.ZERO:
+				# Use a random direction to avoid division by zero
+				direction_away = Vector2(1.0, 0.0)
+			
+			# Apply constant push-away velocity
+			push_away_velocity += direction_away * SOFT_COLLISION_PUSH_SPEED
+	
+	# Apply push-away velocity to horizontal movement only (XZ plane)
+	if push_away_velocity != Vector2.ZERO:
+		velocity.x += push_away_velocity.x
+		velocity.z += push_away_velocity.y
+
+# ----------------------------
 # Melee hitbox: Area3D setup
 # ----------------------------
 func _create_melee_area() -> void:
@@ -350,8 +432,10 @@ func _create_melee_area() -> void:
 	melee_area.monitoring = false
 	melee_area.monitorable = false
 
-	# Optional: restrict to an "enemies" layer if you use layers
-	# melee_area.collision_mask = 1 << 3  # example: only layer 3
+	# Set collision mask to detect layer 2 (players/entities)
+	# Layer 1 = Environment, Layer 2 = Players/Entities
+	# We want to hit players and enemies, which are on layer 2
+	melee_area.collision_mask = 2  # Detect layer 2 (players and enemies)
 
 	# Connect signal once
 	melee_area.body_entered.connect(_on_melee_area_body_entered)
