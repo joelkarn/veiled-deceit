@@ -417,7 +417,7 @@ func _apply_soft_collision(delta: float) -> void:
 			# Handle edge case where positions are exactly the same (extremely rare)
 			if direction_away == Vector2.ZERO:
 				# Use a random direction to avoid division by zero
-				direction_away = Vector2(1.0, 0.0)
+				direction_away = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 			
 			# Apply constant push-away velocity
 			push_away_velocity += direction_away * SOFT_COLLISION_PUSH_SPEED
