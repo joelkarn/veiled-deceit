@@ -18,8 +18,3 @@ Navigate to the cloned project directory and open the `project.godot` file with 
 cd veiled-deceit
 open project.godot
 ```
-
-
-
-
-

@@ -1,0 +1,15 @@
+<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Axe handle (brown) -->
+  <rect x="28" y="20" width="8" height="38" fill="#8B4513" stroke="#5D2E0C" stroke-width="1"/>
+  
+  <!-- Axe head (silver/gray) -->
+  <path d="M 20 18 L 44 18 L 48 10 L 42 8 L 22 8 L 16 10 Z" fill="#C0C0C0" stroke="#808080" stroke-width="1"/>
+  
+  <!-- Axe blade edge (darker) -->
+  <line x1="16" y1="10" x2="48" y2="10" stroke="#606060" stroke-width="2"/>
+  
+  <!-- Handle grip lines -->
+  <line x1="28" y1="30" x2="36" y2="30" stroke="#5D2E0C" stroke-width="1"/>
+  <line x1="28" y1="40" x2="36" y2="40" stroke="#5D2E0C" stroke-width="1"/>
+  <line x1="28" y1="50" x2="36" y2="50" stroke="#5D2E0C" stroke-width="1"/>
+</svg>

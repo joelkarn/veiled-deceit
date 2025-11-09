@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/sword_icon.svg" id="2"]
+
+[resource]
+script = ExtResource("1")
+item_id = "sword"
+item_name = "Iron Sword"
+description = "A sturdy iron sword. Good for fighting enemies."
+icon = ExtResource("2")
+item_type = 0
+max_stack = 1
+is_equippable = true
+damage = 15.0
+attack_speed = 1.2
+range = 2.5

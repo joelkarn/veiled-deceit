@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3 uid="uid://ci7coj77n5ph7"]
+
+[ext_resource type="Script" uid="uid://6r7ywfvwa38c" path="res://scripts/item_pickup.gd" id="1_pickup"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_axe"]
+size = Vector3(0.5, 1.5, 0.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_axe"]
+size = Vector3(0.5, 1.5, 0.2)
+
+[node name="AxePickup" type="Area3D"]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("1_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_axe")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_axe")
+
+[node name="RotationAnimation" type="AnimationPlayer" parent="."]
+
+[node name="Timer" type="Timer" parent="."]
+autostart = true
