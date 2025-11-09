@@ -182,6 +182,16 @@ func spawn_player(peer_id: int) -> void:
 		
 	parent.add_child(player, true)  # force_readable_name = true for networking
 	
+	# Initialize inventory for this player
+	if InventoryManager:
+		InventoryManager.initialize_player_inventory(peer_id)
+		
+		# Give starting items (server only)
+		if is_server:
+			# Give a sword to start
+			await get_tree().process_frame
+			InventoryManager.add_item(peer_id, "sword", 1)
+	
 	# If we're the server, tell all clients to spawn this player
 	if is_server:
 		call_deferred("_send_spawn_to_clients", peer_id, spawn_position)
@@ -264,6 +274,101 @@ func process_damage_request(attacker_id: int, body_name: String, body_peer_id: i
 		print("Host: Processed damage from Player ", attacker_id, " to ", body_name, " (", damage, " damage)")
 	else:
 		print("Host: Could not find target for damage: ", body_name, " (peer_id: ", body_peer_id, ")")
+
+# Clients send interaction requests to host for validation
+@rpc("any_peer", "call_local", "reliable")
+func request_interact(player_id: int, interactable_path: NodePath) -> void:
+	if not multiplayer.is_server():
+		return  # Only host processes
+	
+	# Don't process if shutting down
+	if is_shutting_down:
+		return
+	
+	# Find the interactable object
+	var interactable = get_tree().current_scene.get_node_or_null(interactable_path)
+	if not interactable:
+		print("Host: Could not find interactable: ", interactable_path)
+		return
+	
+	# Find the player
+	var player = get_tree().current_scene.get_node_or_null("Player_" + str(player_id))
+	if not player:
+		print("Host: Could not find player: ", player_id)
+		return
+	
+	# Validate distance (prevent cheating)
+	var distance = player.global_position.distance_to(interactable.global_position)
+	if distance > 5.0:  # Max interaction distance
+		print("Host: Player ", player_id, " too far from interactable (", distance, "m)")
+		return
+	
+	# Process interaction
+	if interactable.has_method("interact"):
+		interactable.interact(player)
+		print("Host: Player ", player_id, " interacted with ", interactable.name)
+
+# Clients send harvest start requests to host
+@rpc("any_peer", "call_local", "reliable")
+func request_start_harvest(player_id: int, interactable_path: NodePath) -> void:
+	if not multiplayer.is_server():
+		return
+	
+	if is_shutting_down:
+		return
+	
+	var interactable = get_tree().current_scene.get_node_or_null(interactable_path)
+	if not interactable:
+		return
+	
+	var player = get_tree().current_scene.get_node_or_null("Player_" + str(player_id))
+	if not player:
+		return
+	
+	# Validate distance
+	var distance = player.global_position.distance_to(interactable.global_position)
+	if distance > 5.0:
+		return
+	
+	# Start harvest
+	if interactable.has_method("start_harvest"):
+		interactable.start_harvest(player)
+
+# Clients send harvest cancel requests to host
+@rpc("any_peer", "call_local", "reliable")
+func request_cancel_harvest(player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+	
+	if is_shutting_down:
+		return
+	
+	# Find all berry bushes being harvested by this player
+	var scene = get_tree().current_scene
+	var found = false
+	
+	# Search recursively through all nodes
+	for child in scene.get_children():
+		if _cancel_harvest_in_node(child, player_id):
+			found = true
+			break
+		# Check children recursively
+		for grandchild in child.get_children():
+			if _cancel_harvest_in_node(grandchild, player_id):
+				found = true
+				break
+		if found:
+			break
+
+func _cancel_harvest_in_node(node: Node, player_id: int) -> bool:
+	"""Helper to check if a node is being harvested by the player and cancel it"""
+	if node.has_method("cancel_harvest") and node.has_method("is_harvesting"):
+		if node.is_harvesting():
+			var harvesting_player = node.get("harvesting_player")
+			if harvesting_player and harvesting_player.get("player_id") == player_id:
+				node.cancel_harvest()
+				return true
+	return false
 
 # Shutdown game when server disconnects
 func _shutdown_game_immediate() -> void:
