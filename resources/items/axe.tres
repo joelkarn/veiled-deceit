@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AxeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/axe_data.gd" id="1_axe"]
+[ext_resource type="Texture2D" path="res://assets/icons/axe_icon.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_axe")
+item_id = "axe"
+item_name = "Axe"
+item_type = 1
+description = "A heavy woodcutting axe. Deals high damage but swings slowly."
+icon = ExtResource("2_icon")
+max_stack = 1
+damage = 20.0
+attack_speed = 0.67
+range = 2.5

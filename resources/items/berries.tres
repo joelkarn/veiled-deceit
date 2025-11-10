@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/consumable_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/berries_icon.svg" id="2"]
+
+[resource]
+script = ExtResource("1")
+item_id = "berries"
+item_name = "Berries"
+description = "Sweet berries that restore health."
+icon = ExtResource("2")
+item_type = 1
+max_stack = 99
+is_equippable = false
+effect_type = 0
+effect_value = 15.0
+duration = 0.0
