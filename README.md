@@ -4,7 +4,7 @@
 
 To get started with "Veiled Deceit," follow these steps to download and run the project:
 
-### 1. Download Godot 4.3
+### 1. Download Godot 4.5
 Download the latest version of Godot from the official website. Ensure you choose the correct version for your operating system.
 
 ### 2. Clone the Repo
