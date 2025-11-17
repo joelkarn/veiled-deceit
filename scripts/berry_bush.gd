@@ -19,17 +19,10 @@ func _ready() -> void:
 	interact_prompt = "Hold E to harvest berries"
 	update_appearance()
 
-	# Connect to multiplayer signals to sync state to new players
+# Send current state to a specific client (for late joiners)
+func sync_state_to_client(peer_id: int) -> void:
 	if multiplayer.is_server():
-		multiplayer.peer_connected.connect(_on_player_connected)
-
-func _on_player_connected(id: int) -> void:
-	"""Sync current bush state to newly connected player"""
-	if not multiplayer.is_server():
-		return
-
-	# Send current berry state to the new player
-	rpc_id(id, "sync_bush_state", has_berries)
+		rpc_id(peer_id, "sync_bush_state", has_berries)
 
 func _process(delta: float) -> void:
 	# Only process on server, and only if multiplayer is properly set up

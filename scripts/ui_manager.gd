@@ -4,6 +4,7 @@ signal menu_opened
 signal menu_closed
 
 var is_menu_open := false
+var chest_ui: Control = null
 
 func _ready() -> void:
 	# Check if lobby is visible - if so, don't capture mouse yet
@@ -57,5 +58,21 @@ func close_menu() -> void:
 	menu_closed.emit()
 
 func is_menu_active() -> bool:
-	return is_menu_open
+	return is_menu_open or (chest_ui and chest_ui.visible)
+
+# Chest UI management
+func show_chest_ui(chest: Node, inventory: Array) -> void:
+	if not chest_ui:
+		# Find or create chest UI
+		chest_ui = get_node_or_null("../UILayers/ChestLayer/ChestUI")
+		if not chest_ui:
+			print("UIManager: ChestUI not found in scene")
+			return
+	
+	if chest_ui.has_method("show_chest"):
+		chest_ui.show_chest(chest, inventory)
+
+func update_chest_ui(inventory: Array) -> void:
+	if chest_ui and chest_ui.visible and chest_ui.has_method("update_chest_inventory"):
+		chest_ui.update_chest_inventory(inventory)
 

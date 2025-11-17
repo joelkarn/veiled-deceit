@@ -113,14 +113,14 @@ func _ready() -> void:
 	last_validated_position = position
 	last_validated_rotation = rotation.y
 	last_validation_time = Time.get_ticks_msec() / 1000.0
-	
+
 	# Set collision layers:
 	# Layer 1 = Environment (ground, walls, obstacles)
 	# Layer 2 = Players (entities)
 	# Players should collide with environment (layer 1) but not with each other (layer 2)
 	collision_layer = 2  # Player is on layer 2
 	collision_mask = 1    # Player only collides with layer 1 (environment)
-	
+
 	# Set multiplayer authority
 	call_deferred("_set_multiplayer_authority")
 
@@ -204,11 +204,11 @@ func _physics_process(delta: float) -> void:
 			input_buffer["movement"] = Input.get_vector("left", "right", "forward", "backward")
 			input_buffer["jump"] = Input.is_action_just_pressed("jump")
 			input_buffer["speed_multiplier"] = 0.5 if Input.is_action_pressed("backward") else 1.0
-			
+
 			if _yaw_key_active:
 				var yaw_axis := Input.get_axis("rotate_right", "rotate_left")
 				rotate_y(deg_to_rad(key_yaw_speed_deg) * yaw_axis * delta)
-			
+
 			# Process movement immediately (client-side authority - includes jump)
 			process_movement(delta)
 			input_buffer["jump"] = false
@@ -219,7 +219,7 @@ func _physics_process(delta: float) -> void:
 				position_update_timer = 0.0
 				send_position_update_to_server()
 
-			
+
 			# Reset camera rotation after sending (prevents drift)
 			input_buffer["camera_rotation"] = Vector2.ZERO
 		else:
@@ -290,11 +290,11 @@ func process_movement(delta: float) -> void:
 			handle_jumping(init_jump_input, direction, input_dir, speed_multiplier)
 		else:
 			handle_falling(direction, speed_multiplier)
-		
+
 		# Apply soft collision push-away (only for local players, horizontal only)
 		if is_local_player:
 			_apply_soft_collision(delta)
-		
+
 		move_and_slide()
 		return
 
@@ -372,56 +372,56 @@ func _apply_soft_collision(delta: float) -> void:
 	# Only apply to local players
 	if not is_local_player:
 		return
-	
+
 	# Get horizontal position (XZ plane only)
 	var my_pos_horizontal = Vector2(position.x, position.z)
-	
+
 	# Find all other players and enemies in the scene
 	var scene = get_tree().current_scene
 	if not scene:
 		return
-	
+
 	var push_away_velocity = Vector2.ZERO
-	
+
 	# Check all children of the scene root
 	for child in scene.get_children():
 		# Skip self
 		if child == self:
 			continue
-		
+
 		# Check if it's a player
 		var is_player = child.name.begins_with("Player_")
 		# Check if it's an enemy (enemies have the Enemy script)
 		var is_enemy = child.has_method("take_damage") and not is_player
-		
+
 		# Only process players and enemies
 		if not (is_player or is_enemy):
 			continue
-		
+
 		# Skip if it's not a CharacterBody3D (shouldn't happen, but safety check)
 		if not child is CharacterBody3D:
 			continue
-		
+
 		# Get horizontal position of other entity
 		var other_pos_horizontal = Vector2(child.position.x, child.position.z)
-		
+
 		# Calculate horizontal distance
 		var horizontal_distance = my_pos_horizontal.distance_to(other_pos_horizontal)
-		
+
 		# Check if circles overlap (2 * radius is the combined radius)
 		var combined_radius = SOFT_COLLISION_RADIUS * 2.0
 		if horizontal_distance < combined_radius and horizontal_distance > 0.0:
 			# Calculate direction away from other entity (horizontal only)
 			var direction_away = (my_pos_horizontal - other_pos_horizontal).normalized()
-			
+
 			# Handle edge case where positions are exactly the same (extremely rare)
 			if direction_away == Vector2.ZERO:
 				# Use a random direction to avoid division by zero
 				direction_away = Vector2(1.0, 0.0)
-			
+
 			# Apply constant push-away velocity
 			push_away_velocity += direction_away * SOFT_COLLISION_PUSH_SPEED
-	
+
 	# Apply push-away velocity to horizontal movement only (XZ plane)
 	if push_away_velocity != Vector2.ZERO:
 		velocity.x += push_away_velocity.x
@@ -587,12 +587,12 @@ func stop_movement(delta):
 	velocity.x = 0.0
 	velocity.z = 0.0
 	move_and_slide()
-	
+
 func handle_mouse_motion(event) -> void:
 	# Rotate player (yaw)
 	if not _yaw_key_active():
 		rotate_y(deg_to_rad(-event.relative.x * sens_horizontal))
-	
+
 	# Rotate camera (look up and down)
 	var delta_pitch_deg: float = -event.relative.y * sens_vertical
 	_pitch += deg_to_rad(delta_pitch_deg)
@@ -771,7 +771,7 @@ func send_position_update_to_server() -> void:
 func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return
-	
+
 	# Don't process if shutting down
 	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
 	if network_manager and network_manager.is_shutting_down:
@@ -805,7 +805,7 @@ func _apply_server_reconciliation(delta: float) -> void:
 		return
 
 	var position_error = position.distance_to(last_server_position)
-	
+
 	# Don't care about small distances
 	if position_error < position_error_threshold:
 		return

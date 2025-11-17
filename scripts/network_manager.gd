@@ -92,9 +92,31 @@ func _handle_new_client(peer_id: int) -> void:
 				if existing_peer_id != peer_id:
 					rpc_id(peer_id, "sync_player_spawn", existing_peer_id, child.position)
 	
+	# Sync all interactable objects' states to the new client
+	_sync_world_state_to_client(peer_id)
+	
 	# Wait a frame then spawn the new player
 	await get_tree().process_frame
 	spawn_player(peer_id)
+
+# Sync all world object states to a newly connected client
+func _sync_world_state_to_client(peer_id: int) -> void:
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+	
+	# Recursively find all nodes with sync_state_to_client method
+	_sync_node_state_recursive(scene, peer_id)
+
+# Helper to recursively sync node states
+func _sync_node_state_recursive(node: Node, peer_id: int) -> void:
+	# If node has sync method, call it
+	if node.has_method("sync_state_to_client"):
+		node.sync_state_to_client(peer_id)
+	
+	# Recurse through children
+	for child in node.get_children():
+		_sync_node_state_recursive(child, peer_id)
 
 # Called when a peer disconnects
 func _on_peer_disconnected(peer_id: int) -> void:

@@ -57,6 +57,11 @@ func sync_pickup_state(picked_up: bool) -> void:
 	is_picked_up = picked_up
 	update_visibility()
 
+# Send current state to a specific client (for late joiners)
+func sync_state_to_client(peer_id: int) -> void:
+	if multiplayer.is_server():
+		rpc_id(peer_id, "sync_pickup_state", is_picked_up)
+
 func can_interact() -> bool:
 	return not is_picked_up
 
