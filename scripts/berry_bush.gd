@@ -128,6 +128,10 @@ func _complete_harvest() -> void:
 
 	if success:
 		print("BerryBush: Player ", player_id, " harvested ", berries_per_harvest, " berries")
+
+		# Play success sound (test audio system)
+		_play_pickup_sound()
+
 		has_berries = false
 		is_being_harvested = false
 		harvesting_player = null
@@ -234,3 +238,42 @@ func get_harvest_duration() -> float:
 
 func is_harvesting() -> bool:
 	return is_being_harvested
+
+func _play_pickup_sound() -> void:
+	"""Play a simple beep sound when berries are collected (tests audio system)"""
+	# Create a simple AudioStreamPlayer
+	var audio_player = AudioStreamPlayer.new()
+	add_child(audio_player)
+
+	# Create a simple beep using AudioStreamGenerator
+	var stream = AudioStreamGenerator.new()
+	stream.mix_rate = 22050
+	audio_player.stream = stream
+	audio_player.play()
+
+	# Generate a simple beep tone
+	await get_tree().process_frame
+	var playback = audio_player.get_stream_playback() as AudioStreamGeneratorPlayback
+	if playback:
+		var frequency = 800.0  # 800 Hz beep
+		var duration = 0.1  # 100ms
+		var sample_count = int(stream.mix_rate * duration)
+
+		for i in range(sample_count):
+			var t = float(i) / stream.mix_rate
+			var sample = sin(2.0 * PI * frequency * t) * 0.3  # 30% volume
+
+			# Fade out at the end
+			var fade = 1.0
+			if i > sample_count * 0.7:
+				fade = 1.0 - (float(i - sample_count * 0.7) / (sample_count * 0.3))
+
+			var frame = Vector2(sample * fade, sample * fade)
+			if playback.can_push_buffer(1):
+				playback.push_frame(frame)
+
+	# Clean up after sound finishes
+	await get_tree().create_timer(0.2).timeout
+	audio_player.queue_free()
+
+	print("🔊 BerryBush: Played pickup sound (testing audio system)")
