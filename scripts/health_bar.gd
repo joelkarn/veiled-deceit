@@ -300,7 +300,7 @@ func _update_bar_size(scale: float) -> void:
 	
 	# Update foreground (maintain health percentage, so only scale size)
 	if foreground_rect:
-		var health_percentage = current_health / max_health if max_health > 0 else 0
+		var health_percentage = current_health / max_health if max_health > 0 else 0.0
 		foreground_rect.size = Vector2(scaled_width * health_percentage, scaled_height)
 	
 	# Update borders - scale border thickness proportionally, but ensure minimum of 1 pixel
@@ -350,7 +350,7 @@ func _update_bar_display() -> void:
 		return
 	
 	# Calculate health percentage
-	var health_percentage = current_health / max_health if max_health > 0 else 0
+	var health_percentage = current_health / max_health if max_health > 0 else 0.0
 	
 	# Update foreground width - account for current scale
 	var scaled_width = bar_width * current_scale

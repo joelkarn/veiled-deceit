@@ -2,12 +2,6 @@ extends Node
 
 # Voice Manager - Handles VOIP audio capture and playback for all players
 
-# Audio capture settings
-const SAMPLE_RATE = 48000
-const MIX_RATE = 48000
-const BUFFER_LENGTH = 0.1  # 100ms buffer
-const PACKET_SIZE = 480  # ~10ms of audio at 48kHz (960 bytes, well under MTU)
-
 # Audio capture components
 var audio_stream_player: AudioStreamPlayer
 var audio_effect_capture: AudioEffectCapture
@@ -15,7 +9,6 @@ var mic_bus_index: int = -1
 
 # Audio playback - one AudioStreamGenerator per connected peer
 var peer_audio_players: Dictionary = {}  # peer_id -> AudioStreamPlayer
-var peer_audio_generators: Dictionary = {}  # peer_id -> AudioStreamGenerator
 var peer_audio_playbacks: Dictionary = {}  # peer_id -> AudioStreamGeneratorPlayback
 
 # Voice transmission state
@@ -90,7 +83,7 @@ func _setup_audio_bus() -> void:
 
 	if not has_capture:
 		audio_effect_capture = AudioEffectCapture.new()
-		audio_effect_capture.buffer_length = BUFFER_LENGTH
+		# Use default buffer length (Godot's default is good)
 		AudioServer.add_bus_effect(mic_bus_index, audio_effect_capture)
 		print("VoiceManager: Added AudioEffectCapture to 'Mic' bus")
 	else:
@@ -148,17 +141,16 @@ func _process(delta: float) -> void:
 func _capture_and_send_audio() -> void:
 	"""Capture audio from microphone and send to all peers"""
 	if not audio_effect_capture:
-		print("VoiceManager: ERROR - audio_effect_capture is null!")
 		return
 
-	# Get available frames
+	# Get all available frames
 	var available_frames = audio_effect_capture.get_frames_available()
 
-	if available_frames < PACKET_SIZE:
-		return  # Not enough audio data yet
+	if available_frames == 0:
+		return
 
-	# Read audio frames
-	var audio_frames = audio_effect_capture.get_buffer(PACKET_SIZE)
+	# Read all available audio frames
+	var audio_frames = audio_effect_capture.get_buffer(available_frames)
 
 	if audio_frames.size() == 0:
 		return
@@ -169,7 +161,7 @@ func _capture_and_send_audio() -> void:
 		if volume < vad_threshold:
 			silence_frames += 1
 			if silence_frames > MAX_SILENCE_FRAMES:
-				return  # Don't send silent audio
+				return
 		else:
 			silence_frames = 0
 
@@ -179,11 +171,8 @@ func _capture_and_send_audio() -> void:
 	if audio_data.size() == 0:
 		return
 
-	# Send to all peers via RPC
+	# Send to all peers
 	var my_peer_id = multiplayer.get_unique_id()
-
-	# Use unreliable RPC for voice (we don't need guaranteed delivery)
-	# If a packet is lost, the next one will arrive soon anyway
 	_send_voice_data(audio_data, my_peer_id)
 
 func _calculate_audio_volume(frames: PackedVector2Array) -> float:
@@ -285,10 +274,9 @@ func _play_audio_from_peer(peer_id: int, audio_data: PackedByteArray) -> void:
 	# Convert bytes back to audio frames
 	var frames = _convert_bytes_to_frames(audio_data)
 
-	# Push frames to audio stream
+	# Push frames directly to playback - simple and fast
 	for frame in frames:
-		if playback.can_push_buffer(1):
-			playback.push_frame(frame)
+		playback.push_frame(frame)
 
 func _convert_bytes_to_frames(audio_data: PackedByteArray) -> PackedVector2Array:
 	"""Convert received bytes back to audio frames"""
@@ -320,25 +308,23 @@ func _create_audio_player_for_peer(peer_id: int) -> void:
 	"""Create an AudioStreamPlayer with generator for a specific peer"""
 	print("VoiceManager: Creating audio player for peer ", peer_id)
 
-	# Create AudioStreamGenerator
+	# Create AudioStreamGenerator with defaults
 	var generator = AudioStreamGenerator.new()
-	generator.mix_rate = MIX_RATE
-	generator.buffer_length = BUFFER_LENGTH
+	# Use Godot's default mix_rate (44100) and buffer_length (0.5)
 
 	# Create AudioStreamPlayer
 	var player = AudioStreamPlayer.new()
 	player.stream = generator
 	player.autoplay = true
-	player.bus = "Master"  # Play through master bus
+	player.bus = "Master"
 	add_child(player)
 
 	# Get playback interface
-	await get_tree().process_frame  # Wait for player to be ready
+	await get_tree().process_frame
 	var playback = player.get_stream_playback() as AudioStreamGeneratorPlayback
 
 	# Store references
 	peer_audio_players[peer_id] = player
-	peer_audio_generators[peer_id] = generator
 	peer_audio_playbacks[peer_id] = playback
 
 	print("VoiceManager: Audio player ready for peer ", peer_id)
@@ -360,7 +346,6 @@ func _on_peer_disconnected(peer_id: int) -> void:
 		peer_audio_players.erase(peer_id)
 
 	# Remove references
-	peer_audio_generators.erase(peer_id)
 	peer_audio_playbacks.erase(peer_id)
 
 func _create_talk_indicator() -> void:
