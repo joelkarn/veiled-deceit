@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "collect_berries"
+quest_name = "Berry Collector"
+description = "Collect 5 berries from berry bushes"
+goal = 5
+current_progress = 0
+is_completed = false
+quest_type = 0

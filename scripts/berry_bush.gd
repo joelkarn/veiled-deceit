@@ -129,6 +129,11 @@ func _complete_harvest() -> void:
 	if success:
 		print("BerryBush: Player ", player_id, " harvested ", berries_per_harvest, " berries")
 
+		# Track quest progress for berry collection (only for the host if they're the harvester)
+		var local_player_id = multiplayer.get_unique_id()
+		if player_id == local_player_id and QuestManager:
+			QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_per_harvest)
+
 		# Play success sound (test audio system)
 		_play_pickup_sound()
 
@@ -138,7 +143,6 @@ func _complete_harvest() -> void:
 		harvest_progress = 0.0
 
 		# Hide UI for local player (host) if they were harvesting
-		var local_player_id = multiplayer.get_unique_id()
 		if player_id == local_player_id:
 			var harvest_ui = get_node_or_null("/root/HarvestUIManager")
 			if harvest_ui:
@@ -146,7 +150,7 @@ func _complete_harvest() -> void:
 
 		update_appearance()
 		rpc("sync_bush_state", false)
-		rpc("sync_harvest_completed")
+		rpc("sync_harvest_completed", player_id, berries_per_harvest)
 
 		# Start respawn timer
 		await get_tree().create_timer(respawn_time).timeout
@@ -215,9 +219,14 @@ func sync_harvest_cancelled() -> void:
 		harvest_ui.cancel_harvest_ui()
 
 @rpc("authority", "call_remote", "reliable")
-func sync_harvest_completed() -> void:
+func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
 	is_being_harvested = false
 	harvest_progress = 0.0
+
+	# Track quest progress only for the player who harvested
+	var local_player_id = multiplayer.get_unique_id()
+	if harvester_id == local_player_id and QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_count)
 
 	# Hide UI for local player
 	var harvest_ui = get_node_or_null("/root/HarvestUIManager")

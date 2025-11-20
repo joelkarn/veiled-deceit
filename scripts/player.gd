@@ -649,7 +649,10 @@ func _on_melee_area_body_entered(body: Node) -> void:
 	if body.has_method("take_damage"):
 		if multiplayer.is_server():
 			# Host processes damage directly
-			body.take_damage(AUTO_ATTACK_DAMAGE, player_id)
+			var damage = AUTO_ATTACK_DAMAGE
+			if equipped_weapon_data:
+				damage = equipped_weapon_data.damage
+			body.take_damage(damage, player_id)
 		else:
 			# Client sends damage request to host
 			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
@@ -667,7 +670,10 @@ func _on_melee_area_body_entered(body: Node) -> void:
 					# It's an enemy or other object - use its node name directly
 					body_name = body.name
 
-				network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, AUTO_ATTACK_DAMAGE)
+				var damage = AUTO_ATTACK_DAMAGE
+				if equipped_weapon_data:
+					damage = equipped_weapon_data.damage
+				network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, damage)
 
 # ----------------------------
 # Debug mesh for the hitbox
@@ -1221,6 +1227,10 @@ func _start_reading_book() -> void:
 
 	# Show the book UI with the book data
 	book_ui.show_book(equipped_item_data)
+
+	# Track quest progress for reading the book
+	if QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1)
 
 	print("Started reading book: ", equipped_item_data.item_name)
 

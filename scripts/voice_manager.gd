@@ -381,16 +381,16 @@ func _create_talking_players_list() -> void:
 	canvas_layer.layer = 100
 	get_tree().root.add_child(canvas_layer)
 
-	# Create container for the list (top-right corner)
+	# Create container for the list (top-left corner)
 	var panel = PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	panel.anchor_left = 1.0
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.anchor_left = 0.0
 	panel.anchor_top = 0.0
-	panel.anchor_right = 1.0
+	panel.anchor_right = 0.0
 	panel.anchor_bottom = 0.0
-	panel.offset_left = -220
+	panel.offset_left = 10
 	panel.offset_top = 10
-	panel.offset_right = -10
+	panel.offset_right = 220
 	panel.offset_bottom = 10
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 

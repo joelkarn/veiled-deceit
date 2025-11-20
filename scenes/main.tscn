@@ -21,6 +21,7 @@
 [ext_resource type="PackedScene" uid="uid://book_ui_scene" path="res://scenes/ui/book_ui.tscn" id="21_book_ui"]
 [ext_resource type="PackedScene" uid="uid://sign_scene" path="res://scenes/sign.tscn" id="22_sign"]
 [ext_resource type="PackedScene" uid="uid://sign_ui_scene" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
+[ext_resource type="PackedScene" uid="uid://quest_log_scene" path="res://scenes/ui/quest_log.tscn" id="24_quest_log"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_oulvc"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -168,3 +169,9 @@ layer = 12
 layer = 13
 
 [node name="SignUI" parent="UILayers/SignUILayer" instance=ExtResource("23_sign_ui")]
+
+[node name="QuestLogLayer" type="CanvasLayer" parent="UILayers"]
+layer = 2
+
+[node name="QuestLog" parent="UILayers/QuestLogLayer" instance=ExtResource("24_quest_log")]
+

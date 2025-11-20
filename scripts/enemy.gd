@@ -7,6 +7,7 @@ extends CharacterBody3D
 
 var original_material: StandardMaterial3D
 var is_flashing := false
+var last_attacker_id: int = 0  # Track who killed this enemy
 
 func _ready():
 	health = max_health
@@ -31,6 +32,10 @@ func take_damage(amount: float, attacker_id: int = 0) -> void:
 	health -= amount
 	health = max(0, health)  # Clamp to 0
 	print("Enemy took ", amount, " damage. Health: ", health)
+
+	# Track the last attacker
+	if attacker_id > 0:
+		last_attacker_id = attacker_id
 
 	# Sync health to all clients
 	sync_health()
@@ -77,12 +82,22 @@ func die() -> void:
 	if not multiplayer.is_server():
 		return
 
-	print("Enemy died!")
+	print("Enemy died! Killed by player: ", last_attacker_id)
 
-	# Broadcast death to all clients
-	rpc("sync_enemy_death")
+	# Track quest progress for the host (if they killed it)
+	var local_player_id = multiplayer.get_unique_id()
+	if last_attacker_id == local_player_id and QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1)
+
+	# Broadcast death to all clients with the attacker ID
+	rpc("sync_enemy_death", last_attacker_id)
 	queue_free()
 
 @rpc("authority", "call_remote", "reliable")
-func sync_enemy_death() -> void:
+func sync_enemy_death(attacker_id: int) -> void:
+	# Track quest progress only for the player who killed this enemy
+	var local_player_id = multiplayer.get_unique_id()
+	if attacker_id == local_player_id and QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1)
+
 	queue_free()

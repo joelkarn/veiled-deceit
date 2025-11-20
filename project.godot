@@ -24,6 +24,7 @@ driver/mix_rate=48000
 InventoryManager="*res://scripts/inventory_manager.gd"
 HarvestUIManager="*res://scripts/harvest_ui_manager.gd"
 VoiceManager="*res://scripts/voice_manager.gd"
+QuestManager="*res://scripts/quest_manager.gd"
 
 [input]
 
