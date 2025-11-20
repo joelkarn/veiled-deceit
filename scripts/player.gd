@@ -96,9 +96,12 @@ var melee_shape: CollisionShape3D
 var auto_attack_active := false
 var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
 
-# Current equipped weapon
+# Current equipped weapon/item
 var equipped_weapon_data: WeaponData = null
+var equipped_item_data: ItemData = null  # For non-weapon items like books
 var crosshair_ui: Control = null
+var book_ui: Control = null
+var is_reading_book: bool = false
 
 # --------------------------
 # Debugging (hitbox visual)
@@ -139,6 +142,7 @@ func _ready() -> void:
 
 	ui_manager = get_node_or_null("../UIManager")
 	crosshair_ui = get_tree().current_scene.get_node_or_null("UILayers/CrosshairLayer/Crosshair")
+	book_ui = get_tree().current_scene.get_node_or_null("UILayers/BookUILayer/BookUI")
 
 	_create_melee_area()
 	_create_melee_debug_mesh()
@@ -185,7 +189,17 @@ func _input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("attack"):
 		input_buffer["attack"] = true
-		auto_attack()
+		# Check if book is equipped - show book UI instead of attacking
+		_update_equipped_item()
+		if equipped_item_data and equipped_item_data is BookData:
+			_start_reading_book()
+		else:
+			auto_attack()
+
+	if event.is_action_released("attack"):
+		# Stop reading book when left click is released
+		if is_reading_book:
+			_stop_reading_book()
 
 	if event.is_action_pressed("interact"):
 		start_interaction()
@@ -525,6 +539,29 @@ func _update_equipped_weapon() -> void:
 				return
 
 	equipped_weapon_data = null
+
+## Get currently equipped item (weapon or other) from toolbar
+func _update_equipped_item() -> void:
+	# Get the toolbar to find selected slot
+	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
+	if not toolbar:
+		equipped_item_data = null
+		return
+
+	var selected_slot = toolbar.selected_slot
+	var inventory = InventoryManager.get_inventory(player_id)
+
+	if selected_slot >= 0 and selected_slot < inventory.size():
+		var slot_data = inventory[selected_slot]
+		var item_id = slot_data.get("item_id", "")
+
+		if item_id != "":
+			var item_data = InventoryManager.get_item_data(item_id)
+			if item_data:
+				equipped_item_data = item_data
+				return
+
+	equipped_item_data = null
 
 ## Perform a melee attack (sword, axe, etc.)
 func _perform_melee_attack() -> void:
@@ -1088,6 +1125,10 @@ func start_interaction() -> void:
 			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
 			if network_manager:
 				network_manager.rpc_id(1, "request_start_harvest", player_id, current_interactable.get_path())
+	elif current_interactable.has_method("stop_interact"):
+		# Hold interaction (like reading a sign) - call interact to show UI
+		current_interactable.interact(self)
+		# is_interacting stays true so we can detect when to stop
 	else:
 		# Instant interaction (press E once)
 		is_interacting = false  # Don't hold for instant pickups
@@ -1112,6 +1153,10 @@ func stop_interaction() -> void:
 	var harvest_ui = get_node_or_null("/root/HarvestUIManager")
 	if harvest_ui:
 		harvest_ui.cancel_harvest_ui()
+
+	# Call stop_interact on the interactable (for signs, etc.)
+	if current_interactable and current_interactable.has_method("stop_interact"):
+		current_interactable.stop_interact(self)
 
 	# Show interaction prompt again if still near interactable
 	_update_interaction_prompt()
@@ -1155,3 +1200,40 @@ func heal(amount: float) -> void:
 	health = min(health + amount, max_health)
 	sync_health()
 	print(name, " healed for ", amount, " HP. Current health: ", health)
+
+# ----------------------------
+# Book reading system
+# ----------------------------
+
+func _start_reading_book() -> void:
+	if not is_local_player or not book_ui:
+		return
+
+	# Don't start reading if already reading
+	if is_reading_book:
+		return
+
+	# Get the equipped book data
+	if not equipped_item_data or not equipped_item_data is BookData:
+		return
+
+	is_reading_book = true
+
+	# Show the book UI with the book data
+	book_ui.show_book(equipped_item_data)
+
+	print("Started reading book: ", equipped_item_data.item_name)
+
+func _stop_reading_book() -> void:
+	if not is_local_player or not book_ui:
+		return
+
+	if not is_reading_book:
+		return
+
+	is_reading_book = false
+
+	# Hide the book UI
+	book_ui.hide_book()
+
+	print("Stopped reading book")

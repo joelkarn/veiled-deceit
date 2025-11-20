@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="BookData" load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://bmdxqr4j3d7oo" path="res://scripts/book_data.gd" id="1_book"]
+[ext_resource type="Texture2D" uid="uid://c0g5y7xn8jk2p" path="res://assets/icons/book_icon.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_book")
+item_id = "book"
+item_name = "Mysterious Book"
+item_type = 2
+description = "An old book with mysterious writings. Hold left click to read it."
+icon = ExtResource("2_icon")
+max_stack = 1
+is_equippable = true
+left_page_text = "Welcome, traveler.
+
+This ancient tome holds
+secrets of the old world.
+
+The veiled truth lies
+within these pages,
+waiting to be discovered."
+right_page_text = "To read further,
+one must seek the
+hidden chambers.
+
+Look for the signs,
+trust your instincts,
+and never give up.
+
+The path will reveal itself."

@@ -17,6 +17,10 @@
 [ext_resource type="PackedScene" uid="uid://enemy_spawner_scene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
 [ext_resource type="PackedScene" uid="uid://bow_pickup_scene_01" path="res://scenes/bow_pickup.tscn" id="18_bow_pickup"]
 [ext_resource type="PackedScene" uid="uid://crosshair_ui_scene" path="res://scenes/ui/crosshair.tscn" id="19_crosshair"]
+[ext_resource type="PackedScene" uid="uid://dh8y4vg7n2pk6" path="res://scenes/book_pickup.tscn" id="20_book_pickup"]
+[ext_resource type="PackedScene" uid="uid://book_ui_scene" path="res://scenes/ui/book_ui.tscn" id="21_book_ui"]
+[ext_resource type="PackedScene" uid="uid://sign_scene" path="res://scenes/sign.tscn" id="22_sign"]
+[ext_resource type="PackedScene" uid="uid://sign_ui_scene" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_oulvc"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -100,6 +104,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.75, 0)
 [node name="BowPickup" parent="map" instance=ExtResource("18_bow_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.75, 0)
 
+[node name="BookPickup" parent="map" instance=ExtResource("20_book_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.75, 0)
+
+[node name="Sign" parent="map" instance=ExtResource("22_sign")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
+
 [node name="Chest" parent="map" instance=ExtResource("15_chest")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
 
@@ -148,3 +158,13 @@ layer = 9
 layer = 11
 
 [node name="Crosshair" parent="UILayers/CrosshairLayer" instance=ExtResource("19_crosshair")]
+
+[node name="BookUILayer" type="CanvasLayer" parent="UILayers"]
+layer = 12
+
+[node name="BookUI" parent="UILayers/BookUILayer" instance=ExtResource("21_book_ui")]
+
+[node name="SignUILayer" type="CanvasLayer" parent="UILayers"]
+layer = 13
+
+[node name="SignUI" parent="UILayers/SignUILayer" instance=ExtResource("23_sign_ui")]
