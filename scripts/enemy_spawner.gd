@@ -126,13 +126,15 @@ func _create_enemy(enemy_id: int, spawn_position: Vector3) -> void:
 
 	# Create enemy instance
 	var enemy = enemy_scene.instantiate()
-	enemy.global_position = spawn_position
 
 	# Give it a unique, consistent name across all clients
 	enemy.name = "Enemy_" + str(enemy_id)
 
-	# Add to scene tree
+	# Add to scene tree first (required before setting global_position)
 	get_parent().add_child(enemy, true)  # force_readable_name for networking
+
+	# Now set position (after it's in the tree)
+	enemy.global_position = spawn_position
 
 	# Add enemy to group for damage tracking
 	enemy.add_to_group("enemies")

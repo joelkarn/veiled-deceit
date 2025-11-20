@@ -86,11 +86,19 @@ const MELEE_OFFSET := Vector3(0.0, 1.0, -1.5)
 # Size of the hitbox (BoxShape3D): width (X), height (Y), depth (Z forward)
 const MELEE_BOX_SIZE := Vector3(1.8, 1.2, 1.6)
 
+# Raycast constants for ranged weapons (bow)
+const BOW_RAYCAST_RANGE := 20.0
+const BOW_DAMAGE := 12.0
+
 var auto_attack_on_cooldown := false
 var melee_area: Area3D
 var melee_shape: CollisionShape3D
 var auto_attack_active := false
 var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
+
+# Current equipped weapon
+var equipped_weapon_data: WeaponData = null
+var crosshair_ui: Control = null
 
 # --------------------------
 # Debugging (hitbox visual)
@@ -99,6 +107,8 @@ var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
 var melee_debug_mesh: MeshInstance3D
 var melee_debug_mat_idle: StandardMaterial3D
 var melee_debug_mat_active: StandardMaterial3D
+
+
 
 var ui_manager: Node
 
@@ -128,6 +138,7 @@ func _ready() -> void:
 		_pitch = camera_mount.rotation.x
 
 	ui_manager = get_node_or_null("../UIManager")
+	crosshair_ui = get_tree().current_scene.get_node_or_null("UILayers/CrosshairLayer/Crosshair")
 
 	_create_melee_area()
 	_create_melee_debug_mesh()
@@ -263,6 +274,12 @@ func _physics_process(delta: float) -> void:
 	if is_local_player and not menu_active:
 		_check_for_interactables()
 		_update_interaction(delta)
+
+	# Update weapon-specific UI (only for local player)
+	if is_local_player:
+		_update_equipped_weapon()  # Check what weapon is equipped
+		_update_melee_debug_visual(false)
+		_update_crosshair_visibility()
 
 func _yaw_key_active() -> bool:
 	return Input.is_action_pressed("rotate_left") or Input.is_action_pressed("rotate_right")
@@ -476,6 +493,41 @@ func auto_attack() -> void:
 	if auto_attack_on_cooldown:
 		return
 
+	# Update equipped weapon from toolbar
+	_update_equipped_weapon()
+
+	# Check if we're using a bow (ranged weapon)
+	if equipped_weapon_data and equipped_weapon_data is BowData:
+		_perform_bow_attack()
+	else:
+		# Default melee attack
+		_perform_melee_attack()
+
+## Get currently equipped weapon from toolbar
+func _update_equipped_weapon() -> void:
+	# Get the toolbar to find selected slot
+	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
+	if not toolbar:
+		equipped_weapon_data = null
+		return
+
+	var selected_slot = toolbar.selected_slot
+	var inventory = InventoryManager.get_inventory(player_id)
+
+	if selected_slot >= 0 and selected_slot < inventory.size():
+		var slot_data = inventory[selected_slot]
+		var item_id = slot_data.get("item_id", "")
+
+		if item_id != "":
+			var item_data = InventoryManager.get_item_data(item_id)
+			if item_data and item_data is WeaponData:
+				equipped_weapon_data = item_data
+				return
+
+	equipped_weapon_data = null
+
+## Perform a melee attack (sword, axe, etc.)
+func _perform_melee_attack() -> void:
 	auto_attack_active = true
 	auto_attack_on_cooldown = true
 	already_hit.clear()
@@ -487,6 +539,59 @@ func auto_attack() -> void:
 	_enable_melee_area(true)
 	await get_tree().create_timer(AUTO_ATTACK_WINDOW_SECONDS).timeout
 	_enable_melee_area(false)
+
+	auto_attack_active = false
+
+	# Cooldown timer before next attack allowed
+	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
+	auto_attack_on_cooldown = false
+
+## Perform a ranged attack with the bow
+func _perform_bow_attack() -> void:
+	auto_attack_active = true
+	auto_attack_on_cooldown = true
+
+	if animation_player and animation_player.has_animation("attack"):
+		animation_player.play("attack")
+
+	# Perform raycast from camera center
+	if camera:
+		var space_state = get_world_3d().direct_space_state
+		var from = camera.global_position
+		var to = from + (-camera.global_transform.basis.z * BOW_RAYCAST_RANGE)
+
+		var query = PhysicsRayQueryParameters3D.create(from, to)
+		query.collision_mask = 2  # Layer 2 = Players/Entities
+		query.exclude = [self]  # Don't hit ourselves
+
+		var result = space_state.intersect_ray(query)
+
+		if result and result.has("collider"):
+			var body = result.collider
+
+			if body.has_method("take_damage"):
+				# Process damage
+				if multiplayer.is_server():
+					# Host processes damage directly
+					body.take_damage(BOW_DAMAGE, player_id)
+				else:
+					# Client sends damage request to host
+					var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+					if network_manager:
+						var body_name = ""
+						var body_peer_id = 0
+
+						# Check if it's a player
+						if body.get("player_id") != null:
+							body_peer_id = body.player_id
+							body_name = "Player_" + str(body_peer_id)
+						else:
+							# It's an enemy or other object
+							body_name = body.name
+
+						network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, BOW_DAMAGE)
+
+				print("Bow hit: ", body.name)
 
 	auto_attack_active = false
 
@@ -564,16 +669,32 @@ func _update_melee_debug_visual(active: bool) -> void:
 	if melee_debug_mesh == null:
 		return
 
-	# Always base visibility purely on this one flag
-	melee_debug_mesh.visible = show_melee_debug
+	# Check if melee weapon is equipped (not bow)
+	var melee_equipped = equipped_weapon_data != null and not (equipped_weapon_data is BowData)
 
-	if not show_melee_debug:
+	# Show only if melee weapon equipped, debug enabled, and local player
+	melee_debug_mesh.visible = melee_equipped and show_melee_debug and is_local_player
+
+	if not melee_debug_mesh.visible:
 		return
 
 	if active:
 		melee_debug_mesh.material_override = melee_debug_mat_active
 	else:
 		melee_debug_mesh.material_override = melee_debug_mat_idle
+
+# Update crosshair visibility based on equipped weapon
+func _update_crosshair_visibility() -> void:
+	if not crosshair_ui or not is_local_player:
+		return
+
+	# Show crosshair only when bow is equipped
+	var bow_equipped = equipped_weapon_data != null and equipped_weapon_data is BowData
+
+	if bow_equipped:
+		crosshair_ui.show_crosshair()
+	else:
+		crosshair_ui.hide_crosshair()
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open
@@ -889,14 +1010,24 @@ func _check_for_interactables() -> void:
 	var results = space_state.intersect_shape(query)
 
 	var old_interactable = current_interactable
+	var closest_interactable = null
+	var closest_distance = interact_distance + 1.0  # Start with max distance
 
 	if results.size() > 0:
+		# Find the closest interactable object
 		for result in results:
 			var collider = result.collider
 			if collider.has_method("can_interact") and collider.can_interact():
-				current_interactable = collider
-				_update_interaction_prompt()
-				return
+				var distance = global_position.distance_to(collider.global_position)
+				if distance < closest_distance:
+					closest_distance = distance
+					closest_interactable = collider
+
+		# Set the closest one as current
+		if closest_interactable:
+			current_interactable = closest_interactable
+			_update_interaction_prompt()
+			return
 
 	# Don't clear current_interactable if we're actively interacting with it
 	# This prevents losing the reference during harvest/interaction
