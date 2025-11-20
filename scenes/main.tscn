@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=20 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
 [ext_resource type="Texture2D" uid="uid://cjcgjp0geraqd" path="res://assets/textures/grids/Orange/texture_09.png" id="2_c35nn"]
@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://axe_pickup_scene" path="res://scenes/axe_pickup.tscn" id="14_axe_pickup"]
 [ext_resource type="PackedScene" uid="uid://chest_scene" path="res://scenes/chest.tscn" id="15_chest"]
 [ext_resource type="PackedScene" uid="uid://chest_ui_scene" path="res://scenes/ui/chest_ui.tscn" id="16_chest_ui"]
+[ext_resource type="PackedScene" uid="uid://enemy_spawner_scene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_oulvc"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -96,6 +97,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.75, 0)
 
 [node name="Chest" parent="map" instance=ExtResource("15_chest")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
+
+[node name="EnemySpawner" parent="map" instance=ExtResource("17_enemy_spawner")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10)
 
 [node name="NetworkManager" type="Node" parent="."]
 script = ExtResource("9_network")

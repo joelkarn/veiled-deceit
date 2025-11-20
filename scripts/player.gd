@@ -522,7 +522,7 @@ func _on_melee_area_body_entered(body: Node) -> void:
 					body_peer_id = body.player_id
 					body_name = "Player_" + str(body_peer_id)
 				else:
-					# It's an enemy or other object - use its name
+					# It's an enemy or other object - use its node name directly
 					body_name = body.name
 
 				network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, AUTO_ATTACK_DAMAGE)

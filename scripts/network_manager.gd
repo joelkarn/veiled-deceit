@@ -288,8 +288,12 @@ func process_damage_request(attacker_id: int, body_name: String, body_peer_id: i
 	if body_peer_id > 0:
 		body = get_tree().current_scene.get_node_or_null("Player_" + str(body_peer_id))
 	else:
-		# It's an enemy or other object - find by name
-		body = get_tree().current_scene.get_node_or_null(body_name)
+		# It's an enemy - search in enemies group by name
+		var enemies = get_tree().get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if enemy.name == body_name:
+				body = enemy
+				break
 	
 	if body and body.has_method("take_damage"):
 		body.take_damage(damage, attacker_id)
