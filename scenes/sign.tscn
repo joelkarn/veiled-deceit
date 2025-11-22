@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3 uid="uid://sign_scene"]
+
+[ext_resource type="Script" uid="uid://d9vx4k2p8jm5n" path="res://scripts/sign.gd" id="1_sign"]
+[ext_resource type="Script" uid="uid://b7qw8x9p2nk4m" path="res://scripts/sign_data.gd" id="2_sign_data"]
+
+[sub_resource type="Resource" id="SignData_default"]
+script = ExtResource("2_sign_data")
+sign_title = "Welcome Sign"
+sign_text = "Welcome to Veiled Deceit!
+
+This is an example sign. You can edit the text in the inspector.
+
+Stand close and press E to read, release E to close."
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_sign"]
+height = 2.5
+radius = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wood"]
+albedo_color = Color(0.545098, 0.270588, 0.0745098, 1)
+
+[node name="Sign" type="Area3D"]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("1_sign")
+sign_data = SubResource("SignData_default")
+interact_prompt = "Press E to read sign"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+shape = SubResource("CylinderShape3D_sign")
+
+[node name="SignPost" type="CSGCylinder3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+radius = 0.1
+height = 2.0
+material = SubResource("StandardMaterial3D_wood")
+
+[node name="SignBoard" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+size = Vector3(1.5, 0.8, 0.1)
+material = SubResource("StandardMaterial3D_wood")

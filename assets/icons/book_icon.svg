@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" version="1.1" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+ <g transform="translate(0,-233)">
+  <!-- Book cover -->
+  <rect x="12" y="241" width="40" height="50" rx="2" ry="2" fill="#8b4513" stroke="#654321" stroke-width="1.5"/>
+  
+  <!-- Book pages -->
+  <rect x="14" y="243" width="36" height="46" fill="#f5e6d3" stroke="#d4c5b0" stroke-width="1"/>
+  
+  <!-- Page lines -->
+  <line x1="18" y1="250" x2="46" y2="250" stroke="#a89984" stroke-width="0.8" opacity="0.6"/>
+  <line x1="18" y1="255" x2="46" y2="255" stroke="#a89984" stroke-width="0.8" opacity="0.6"/>
+  <line x1="18" y1="260" x2="46" y2="260" stroke="#a89984" stroke-width="0.8" opacity="0.6"/>
+  <line x1="18" y1="265" x2="42" y2="265" stroke="#a89984" stroke-width="0.8" opacity="0.6"/>
+  <line x1="18" y1="270" x2="46" y2="270" stroke="#a89984" stroke-width="0.8" opacity="0.6"/>
+  <line x1="18" y1="275" x2="44" y2="275" stroke="#a89984" stroke-width="0.8" opacity="0.6"/>
+  
+  <!-- Book spine shadow -->
+  <rect x="14" y="243" width="3" height="46" fill="#000000" opacity="0.15"/>
+  
+  <!-- Center binding -->
+  <line x1="32" y1="243" x2="32" y2="289" stroke="#654321" stroke-width="1.5" opacity="0.3"/>
+  
+  <!-- Decorative corner elements -->
+  <path d="M 16 245 L 20 245 L 18 247 Z" fill="#d4af37" opacity="0.6"/>
+  <path d="M 48 245 L 44 245 L 46 247 Z" fill="#d4af37" opacity="0.6"/>
+  <path d="M 16 287 L 20 287 L 18 285 Z" fill="#d4af37" opacity="0.6"/>
+  <path d="M 48 287 L 44 287 L 46 285 Z" fill="#d4af37" opacity="0.6"/>
+ </g>
+</svg>

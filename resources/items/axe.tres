@@ -11,6 +11,6 @@ item_type = 1
 description = "A heavy woodcutting axe. Deals high damage but swings slowly."
 icon = ExtResource("2_icon")
 max_stack = 1
-damage = 20.0
+damage = 200.0
 attack_speed = 0.67
 range = 2.5

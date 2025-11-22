@@ -128,13 +128,21 @@ func _complete_harvest() -> void:
 
 	if success:
 		print("BerryBush: Player ", player_id, " harvested ", berries_per_harvest, " berries")
+
+		# Track quest progress for berry collection (only for the host if they're the harvester)
+		var local_player_id = multiplayer.get_unique_id()
+		if player_id == local_player_id and QuestManager:
+			QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_per_harvest)
+
+		# Play success sound (test audio system)
+		_play_pickup_sound()
+
 		has_berries = false
 		is_being_harvested = false
 		harvesting_player = null
 		harvest_progress = 0.0
 
 		# Hide UI for local player (host) if they were harvesting
-		var local_player_id = multiplayer.get_unique_id()
 		if player_id == local_player_id:
 			var harvest_ui = get_node_or_null("/root/HarvestUIManager")
 			if harvest_ui:
@@ -142,7 +150,7 @@ func _complete_harvest() -> void:
 
 		update_appearance()
 		rpc("sync_bush_state", false)
-		rpc("sync_harvest_completed")
+		rpc("sync_harvest_completed", player_id, berries_per_harvest)
 
 		# Start respawn timer
 		await get_tree().create_timer(respawn_time).timeout
@@ -211,9 +219,14 @@ func sync_harvest_cancelled() -> void:
 		harvest_ui.cancel_harvest_ui()
 
 @rpc("authority", "call_remote", "reliable")
-func sync_harvest_completed() -> void:
+func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
 	is_being_harvested = false
 	harvest_progress = 0.0
+
+	# Track quest progress only for the player who harvested
+	var local_player_id = multiplayer.get_unique_id()
+	if harvester_id == local_player_id and QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_count)
 
 	# Hide UI for local player
 	var harvest_ui = get_node_or_null("/root/HarvestUIManager")
@@ -234,3 +247,42 @@ func get_harvest_duration() -> float:
 
 func is_harvesting() -> bool:
 	return is_being_harvested
+
+func _play_pickup_sound() -> void:
+	"""Play a simple beep sound when berries are collected (tests audio system)"""
+	# Create a simple AudioStreamPlayer
+	var audio_player = AudioStreamPlayer.new()
+	add_child(audio_player)
+
+	# Create a simple beep using AudioStreamGenerator
+	var stream = AudioStreamGenerator.new()
+	stream.mix_rate = 22050
+	audio_player.stream = stream
+	audio_player.play()
+
+	# Generate a simple beep tone
+	await get_tree().process_frame
+	var playback = audio_player.get_stream_playback() as AudioStreamGeneratorPlayback
+	if playback:
+		var frequency = 800.0  # 800 Hz beep
+		var duration = 0.1  # 100ms
+		var sample_count = int(stream.mix_rate * duration)
+
+		for i in range(sample_count):
+			var t = float(i) / stream.mix_rate
+			var sample = sin(2.0 * PI * frequency * t) * 0.3  # 30% volume
+
+			# Fade out at the end
+			var fade = 1.0
+			if i > sample_count * 0.7:
+				fade = 1.0 - (float(i - sample_count * 0.7) / (sample_count * 0.3))
+
+			var frame = Vector2(sample * fade, sample * fade)
+			if playback.can_push_buffer(1):
+				playback.push_frame(frame)
+
+	# Clean up after sound finishes
+	await get_tree().create_timer(0.2).timeout
+	audio_player.queue_free()
+
+	print("🔊 BerryBush: Played pickup sound (testing audio system)")

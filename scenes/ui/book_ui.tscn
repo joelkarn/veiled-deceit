@@ -1,0 +1,69 @@
+[gd_scene load_steps=2 format=3 uid="uid://book_ui_scene"]
+
+[ext_resource type="Script" uid="uid://c8jx7yn9k2pm5" path="res://scripts/book_ui.gd" id="1_book_ui"]
+
+[node name="BookUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_book_ui")
+
+[node name="BookContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPage" type="Panel" parent="BookContainer"]
+custom_minimum_size = Vector2(300, 400)
+layout_mode = 2
+offset_left = 310.0
+offset_top = 160.0
+offset_right = 610.0
+offset_bottom = 560.0
+
+[node name="LeftText" type="Label" parent="BookContainer/LeftPage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Left page text"
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="RightPage" type="Panel" parent="BookContainer"]
+custom_minimum_size = Vector2(300, 400)
+layout_mode = 2
+offset_left = 630.0
+offset_top = 160.0
+offset_right = 930.0
+offset_bottom = 560.0
+
+[node name="RightText" type="Label" parent="BookContainer/RightPage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Right page text"
+autowrap_mode = 3
+vertical_alignment = 1

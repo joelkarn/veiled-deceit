@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BowData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/bow_data.gd" id="1_bow"]
+[ext_resource type="Texture2D" path="res://assets/icons/bow_icon.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_bow")
+icon = ExtResource("2_icon")
+item_id = "bow"
+item_name = "Hunting Bow"
+item_type = 0
+description = "A ranged weapon. Aim and shoot at distant enemies."
+max_stack = 1
+damage = 12.0
+attack_speed = 0.8
+range = 20.0
+max_raycast_range = 20.0

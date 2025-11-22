@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://enemy_spawner_scene"]
+
+[ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="1_spawner"]
+[ext_resource type="PackedScene" uid="uid://bigmnauyqn7lf" path="res://scenes/enemy.tscn" id="2_enemy"]
+
+[node name="EnemySpawner" type="Node3D"]
+script = ExtResource("1_spawner")
+enemy_scene = ExtResource("2_enemy")
+spawn_interval = 5.0
+max_enemies = 10
+spawn_radius = 2.0
+enabled = true
+auto_start = true
+despawn_distance = 50.0
+check_despawn = false

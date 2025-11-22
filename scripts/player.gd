@@ -86,11 +86,30 @@ const MELEE_OFFSET := Vector3(0.0, 1.0, -1.5)
 # Size of the hitbox (BoxShape3D): width (X), height (Y), depth (Z forward)
 const MELEE_BOX_SIZE := Vector3(1.8, 1.2, 1.6)
 
+# Raycast constants for ranged weapons (bow)
+const BOW_RAYCAST_RANGE := 20.0
+const BOW_DAMAGE := 12.0
+
+# Arrow scene for visual projectiles
+var arrow_scene: PackedScene = preload("res://scenes/arrow.tscn")
+
+# Debug line for bow attacks
+var debug_line: MeshInstance3D = null
+var debug_line_mesh: ImmediateMesh = null
+@export var show_bow_debug_line: bool = true
+
 var auto_attack_on_cooldown := false
 var melee_area: Area3D
 var melee_shape: CollisionShape3D
 var auto_attack_active := false
 var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
+
+# Current equipped weapon/item
+var equipped_weapon_data: WeaponData = null
+var equipped_item_data: ItemData = null  # For non-weapon items like books
+var crosshair_ui: Control = null
+var book_ui: Control = null
+var is_reading_book: bool = false
 
 # --------------------------
 # Debugging (hitbox visual)
@@ -99,6 +118,8 @@ var already_hit := {} # Dictionary used as a set to prevent multi-hits per swing
 var melee_debug_mesh: MeshInstance3D
 var melee_debug_mat_idle: StandardMaterial3D
 var melee_debug_mat_active: StandardMaterial3D
+
+
 
 var ui_manager: Node
 
@@ -128,10 +149,13 @@ func _ready() -> void:
 		_pitch = camera_mount.rotation.x
 
 	ui_manager = get_node_or_null("../UIManager")
+	crosshair_ui = get_tree().current_scene.get_node_or_null("UILayers/CrosshairLayer/Crosshair")
+	book_ui = get_tree().current_scene.get_node_or_null("UILayers/BookUILayer/BookUI")
 
 	_create_melee_area()
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
+	_create_debug_line()
 
 	# Setup camera after everything is ready
 	call_deferred("_setup_camera")
@@ -174,7 +198,17 @@ func _input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("attack"):
 		input_buffer["attack"] = true
-		auto_attack()
+		# Check if book is equipped - show book UI instead of attacking
+		_update_equipped_item()
+		if equipped_item_data and equipped_item_data is BookData:
+			_start_reading_book()
+		else:
+			auto_attack()
+
+	if event.is_action_released("attack"):
+		# Stop reading book when left click is released
+		if is_reading_book:
+			_stop_reading_book()
 
 	if event.is_action_pressed("interact"):
 		start_interaction()
@@ -263,6 +297,12 @@ func _physics_process(delta: float) -> void:
 	if is_local_player and not menu_active:
 		_check_for_interactables()
 		_update_interaction(delta)
+
+	# Update weapon-specific UI (only for local player)
+	if is_local_player:
+		_update_equipped_weapon()  # Check what weapon is equipped
+		_update_melee_debug_visual(false)
+		_update_crosshair_visibility()
 
 func _yaw_key_active() -> bool:
 	return Input.is_action_pressed("rotate_left") or Input.is_action_pressed("rotate_right")
@@ -476,6 +516,64 @@ func auto_attack() -> void:
 	if auto_attack_on_cooldown:
 		return
 
+	# Update equipped weapon from toolbar
+	_update_equipped_weapon()
+
+	# Check if we're using a bow (ranged weapon)
+	if equipped_weapon_data and equipped_weapon_data is BowData:
+		_perform_bow_attack()
+	else:
+		# Default melee attack
+		_perform_melee_attack()
+
+## Get currently equipped weapon from toolbar
+func _update_equipped_weapon() -> void:
+	# Get the toolbar to find selected slot
+	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
+	if not toolbar:
+		equipped_weapon_data = null
+		return
+
+	var selected_slot = toolbar.selected_slot
+	var inventory = InventoryManager.get_inventory(player_id)
+
+	if selected_slot >= 0 and selected_slot < inventory.size():
+		var slot_data = inventory[selected_slot]
+		var item_id = slot_data.get("item_id", "")
+
+		if item_id != "":
+			var item_data = InventoryManager.get_item_data(item_id)
+			if item_data and item_data is WeaponData:
+				equipped_weapon_data = item_data
+				return
+
+	equipped_weapon_data = null
+
+## Get currently equipped item (weapon or other) from toolbar
+func _update_equipped_item() -> void:
+	# Get the toolbar to find selected slot
+	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
+	if not toolbar:
+		equipped_item_data = null
+		return
+
+	var selected_slot = toolbar.selected_slot
+	var inventory = InventoryManager.get_inventory(player_id)
+
+	if selected_slot >= 0 and selected_slot < inventory.size():
+		var slot_data = inventory[selected_slot]
+		var item_id = slot_data.get("item_id", "")
+
+		if item_id != "":
+			var item_data = InventoryManager.get_item_data(item_id)
+			if item_data:
+				equipped_item_data = item_data
+				return
+
+	equipped_item_data = null
+
+## Perform a melee attack (sword, axe, etc.)
+func _perform_melee_attack() -> void:
 	auto_attack_active = true
 	auto_attack_on_cooldown = true
 	already_hit.clear()
@@ -487,6 +585,98 @@ func auto_attack() -> void:
 	_enable_melee_area(true)
 	await get_tree().create_timer(AUTO_ATTACK_WINDOW_SECONDS).timeout
 	_enable_melee_area(false)
+
+	auto_attack_active = false
+
+	# Cooldown timer before next attack allowed
+	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
+	auto_attack_on_cooldown = false
+
+## Perform a ranged attack with the bow
+func _perform_bow_attack() -> void:
+	auto_attack_active = true
+	auto_attack_on_cooldown = true
+
+	if animation_player and animation_player.has_animation("attack"):
+		animation_player.play("attack")
+
+	# Perform raycast from camera center to find what we're aiming at
+	if camera:
+		var space_state = get_world_3d().direct_space_state
+		var camera_from = camera.global_position
+		var camera_to = camera_from + (-camera.global_transform.basis.z * BOW_RAYCAST_RANGE)
+
+		# First raycast: from camera through crosshair to find target
+		var camera_query = PhysicsRayQueryParameters3D.create(camera_from, camera_to)
+		camera_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities) - hit everything
+		camera_query.exclude = [self]  # Don't hit ourselves
+
+		var camera_result = space_state.intersect_ray(camera_query)
+
+		if camera_result and camera_result.has("collider"):
+			var target_body = camera_result["collider"]
+			var camera_hit_position = camera_result["position"]
+
+			# Second raycast: from player to the exact hit position - check line of sight
+			var player_from = global_position + Vector3(0, 1.5, 0)  # Shoot from chest height
+			var player_to = camera_hit_position  # Aim for exact position camera hit
+
+			var player_query = PhysicsRayQueryParameters3D.create(player_from, player_to)
+			player_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities)
+			player_query.exclude = [self]  # Don't hit ourselves
+
+			var player_result = space_state.intersect_ray(player_query)
+
+			# Determine what we actually hit from player perspective
+			var actual_hit_body = null
+			var actual_hit_position = player_to
+			var hit_intended_target = false
+
+			if player_result.has("collider"):
+				actual_hit_body = player_result["collider"]
+				actual_hit_position = player_result["position"]
+				hit_intended_target = (actual_hit_body == target_body)
+
+			# Draw debug line (local only)
+			if is_local_player:
+				_draw_debug_line(player_from, actual_hit_position, hit_intended_target)
+
+			# Spawn arrow on whatever we hit (sync across network)
+			if actual_hit_body:
+				var body_path = actual_hit_body.get_path()
+
+				# Spawn arrow locally
+				_spawn_arrow(actual_hit_position, (player_to - player_from).normalized(), actual_hit_body)
+
+				# Sync arrow spawn to all other clients
+				if multiplayer.multiplayer_peer != null:
+					rpc("_sync_arrow_spawn", actual_hit_position, (player_to - player_from).normalized(), body_path)
+
+				# Deal damage only if it's a damageable target
+				if actual_hit_body.has_method("take_damage"):
+					if multiplayer.is_server():
+						# Host processes damage directly
+						actual_hit_body.take_damage(BOW_DAMAGE, player_id)
+					else:
+						# Client sends damage request to host
+						var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+						if network_manager:
+							var body_name = ""
+							var body_peer_id = 0
+
+							# Check if it's a player
+							if actual_hit_body.get("player_id") != null:
+								body_peer_id = actual_hit_body.player_id
+								body_name = "Player_" + str(body_peer_id)
+							else:
+								# It's an enemy or other object
+								body_name = actual_hit_body.name
+
+							network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, BOW_DAMAGE)
+
+					print("Bow hit and damaged: ", actual_hit_body.name)
+				else:
+					print("Bow hit: ", actual_hit_body.name, " (no damage)")
 
 	auto_attack_active = false
 
@@ -507,7 +697,10 @@ func _on_melee_area_body_entered(body: Node) -> void:
 	if body.has_method("take_damage"):
 		if multiplayer.is_server():
 			# Host processes damage directly
-			body.take_damage(AUTO_ATTACK_DAMAGE, player_id)
+			var damage = AUTO_ATTACK_DAMAGE
+			if equipped_weapon_data:
+				damage = equipped_weapon_data.damage
+			body.take_damage(damage, player_id)
 		else:
 			# Client sends damage request to host
 			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
@@ -522,10 +715,13 @@ func _on_melee_area_body_entered(body: Node) -> void:
 					body_peer_id = body.player_id
 					body_name = "Player_" + str(body_peer_id)
 				else:
-					# It's an enemy or other object - use its name
+					# It's an enemy or other object - use its node name directly
 					body_name = body.name
 
-				network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, AUTO_ATTACK_DAMAGE)
+				var damage = AUTO_ATTACK_DAMAGE
+				if equipped_weapon_data:
+					damage = equipped_weapon_data.damage
+				network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, damage)
 
 # ----------------------------
 # Debug mesh for the hitbox
@@ -564,16 +760,115 @@ func _update_melee_debug_visual(active: bool) -> void:
 	if melee_debug_mesh == null:
 		return
 
-	# Always base visibility purely on this one flag
-	melee_debug_mesh.visible = show_melee_debug
+	# Check if melee weapon is equipped (not bow)
+	var melee_equipped = equipped_weapon_data != null and not (equipped_weapon_data is BowData)
 
-	if not show_melee_debug:
+	# Show only if melee weapon equipped, debug enabled, and local player
+	melee_debug_mesh.visible = melee_equipped and show_melee_debug and is_local_player
+
+	if not melee_debug_mesh.visible:
 		return
 
 	if active:
 		melee_debug_mesh.material_override = melee_debug_mat_active
 	else:
 		melee_debug_mesh.material_override = melee_debug_mat_idle
+
+# Update crosshair visibility based on equipped weapon
+func _update_crosshair_visibility() -> void:
+	if not crosshair_ui or not is_local_player:
+		return
+
+	# Show crosshair only when bow is equipped
+	var bow_equipped = equipped_weapon_data != null and equipped_weapon_data is BowData
+
+	if bow_equipped:
+		crosshair_ui.show_crosshair()
+	else:
+		crosshair_ui.hide_crosshair()
+
+# ----------------------------
+# Bow attack helpers
+# ----------------------------
+
+## Create debug line mesh for visualizing bow shots
+func _create_debug_line() -> void:
+	debug_line_mesh = ImmediateMesh.new()
+	debug_line = MeshInstance3D.new()
+	debug_line.mesh = debug_line_mesh
+	debug_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Add to scene root, not to player, so it uses global coordinates
+	get_tree().current_scene.call_deferred("add_child", debug_line)
+
+## Draw a debug line from start to end position
+func _draw_debug_line(start: Vector3, end: Vector3, hit_success: bool) -> void:
+	if not show_bow_debug_line or not is_local_player or not debug_line_mesh:
+		return
+
+	# Clear previous line
+	debug_line_mesh.clear_surfaces()
+
+	# Create material
+	var material = StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.vertex_color_use_as_albedo = false
+	material.disable_receive_shadows = true
+
+	# Green if hit, red if blocked
+	if hit_success:
+		material.albedo_color = Color(0.0, 1.0, 0.0, 0.8)
+	else:
+		material.albedo_color = Color(1.0, 0.0, 0.0, 0.8)
+
+	# Draw line in global space
+	debug_line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, material)
+	debug_line_mesh.surface_add_vertex(start)
+	debug_line_mesh.surface_add_vertex(end)
+	debug_line_mesh.surface_end()
+
+	# Make sure debug_line is at origin for global coordinates
+	if debug_line:
+		debug_line.global_position = Vector3.ZERO
+
+	# Clear line after a short delay
+	await get_tree().create_timer(0.5).timeout
+	if debug_line_mesh:
+		debug_line_mesh.clear_surfaces()
+
+## Spawn an arrow at the hit position and attach it to the hit object
+func _spawn_arrow(hit_position: Vector3, direction: Vector3, hit_object: Node) -> void:
+	if not arrow_scene:
+		return
+
+	var arrow = arrow_scene.instantiate()
+
+	# Add arrow to the scene
+	get_tree().current_scene.add_child(arrow)
+
+	# Slightly embed the arrow into the surface (move back along direction)
+	arrow.global_position = hit_position - direction * 0.25
+
+	# Orient arrow to point in the direction of travel
+	# Create a basis that points forward in the direction vector
+	var arrow_basis = Basis.looking_at(direction, Vector3.UP)
+	arrow.global_transform.basis = arrow_basis
+
+	# Parent arrow to the hit object so it moves with it
+	if hit_object and hit_object is Node3D:
+		# Reparent to hit object
+		var local_transform = arrow.global_transform
+		arrow.get_parent().remove_child(arrow)
+		hit_object.add_child(arrow)
+		arrow.global_transform = local_transform
+
+## RPC to sync arrow spawns across all clients
+@rpc("any_peer", "call_remote", "reliable")
+func _sync_arrow_spawn(hit_position: Vector3, direction: Vector3, body_path: NodePath) -> void:
+	# Get the hit object from path
+	var hit_object = get_node_or_null(body_path)
+	if hit_object:
+		_spawn_arrow(hit_position, direction, hit_object)
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open
@@ -889,14 +1184,24 @@ func _check_for_interactables() -> void:
 	var results = space_state.intersect_shape(query)
 
 	var old_interactable = current_interactable
+	var closest_interactable = null
+	var closest_distance = interact_distance + 1.0  # Start with max distance
 
 	if results.size() > 0:
+		# Find the closest interactable object
 		for result in results:
 			var collider = result.collider
 			if collider.has_method("can_interact") and collider.can_interact():
-				current_interactable = collider
-				_update_interaction_prompt()
-				return
+				var distance = global_position.distance_to(collider.global_position)
+				if distance < closest_distance:
+					closest_distance = distance
+					closest_interactable = collider
+
+		# Set the closest one as current
+		if closest_interactable:
+			current_interactable = closest_interactable
+			_update_interaction_prompt()
+			return
 
 	# Don't clear current_interactable if we're actively interacting with it
 	# This prevents losing the reference during harvest/interaction
@@ -957,6 +1262,10 @@ func start_interaction() -> void:
 			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
 			if network_manager:
 				network_manager.rpc_id(1, "request_start_harvest", player_id, current_interactable.get_path())
+	elif current_interactable.has_method("stop_interact"):
+		# Hold interaction (like reading a sign) - call interact to show UI
+		current_interactable.interact(self)
+		# is_interacting stays true so we can detect when to stop
 	else:
 		# Instant interaction (press E once)
 		is_interacting = false  # Don't hold for instant pickups
@@ -981,6 +1290,10 @@ func stop_interaction() -> void:
 	var harvest_ui = get_node_or_null("/root/HarvestUIManager")
 	if harvest_ui:
 		harvest_ui.cancel_harvest_ui()
+
+	# Call stop_interact on the interactable (for signs, etc.)
+	if current_interactable and current_interactable.has_method("stop_interact"):
+		current_interactable.stop_interact(self)
 
 	# Show interaction prompt again if still near interactable
 	_update_interaction_prompt()
@@ -1024,3 +1337,44 @@ func heal(amount: float) -> void:
 	health = min(health + amount, max_health)
 	sync_health()
 	print(name, " healed for ", amount, " HP. Current health: ", health)
+
+# ----------------------------
+# Book reading system
+# ----------------------------
+
+func _start_reading_book() -> void:
+	if not is_local_player or not book_ui:
+		return
+
+	# Don't start reading if already reading
+	if is_reading_book:
+		return
+
+	# Get the equipped book data
+	if not equipped_item_data or not equipped_item_data is BookData:
+		return
+
+	is_reading_book = true
+
+	# Show the book UI with the book data
+	book_ui.show_book(equipped_item_data)
+
+	# Track quest progress for reading the book
+	if QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1)
+
+	print("Started reading book: ", equipped_item_data.item_name)
+
+func _stop_reading_book() -> void:
+	if not is_local_player or not book_ui:
+		return
+
+	if not is_reading_book:
+		return
+
+	is_reading_book = false
+
+	# Hide the book UI
+	book_ui.hide_book()
+
+	print("Stopped reading book")
