@@ -12,12 +12,49 @@ var is_being_harvested: bool = false
 var harvesting_player: Node = null
 var harvest_progress: float = 0.0
 
-@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var berry_bush_model: Node3D = $berry_bush_model
+var berry_objects: Array[Node3D] = []
 
 func _ready() -> void:
 	super._ready()
 	interact_prompt = "Hold E to harvest berries"
+	_find_berry_objects()
 	update_appearance()
+
+func _find_berry_objects() -> void:
+	"""Find all berry objects (Berry_A, Berry_B, etc.) in the model"""
+	berry_objects.clear()
+	if not berry_bush_model:
+		print("BerryBush: berry_bush_model is null!")
+		return
+		
+	_find_berries_recursive(berry_bush_model)
+
+
+func _find_node_by_name(root: Node, name: String) -> Node:
+	"""Find a node by name recursively"""
+	if root.name == name:
+		return root
+	
+	for child in root.get_children():
+		var found = _find_node_by_name(child, name)
+		if found:
+			return found
+	
+	return null
+
+func _find_berries_recursive(node: Node) -> void:
+	"""Recursively search for berry objects"""
+	var node_name = node.name
+	# Match nodes that start with "Berry" (case-sensitive to match Berry_A, Berry_B, etc.)
+	if node_name.begins_with("Berry"):
+		# Make sure it's a Node3D (MeshInstance3D is a subclass of Node3D)
+		if node is Node3D:
+			berry_objects.append(node as Node3D)
+	
+	# Continue searching children
+	for child in node.get_children():
+		_find_berries_recursive(child)
 
 # Send current state to a specific client (for late joiners)
 func sync_state_to_client(peer_id: int) -> void:
@@ -162,21 +199,15 @@ func _complete_harvest() -> void:
 # This ensures harvesting requires holding E, not just pressing it
 
 func update_appearance() -> void:
-	if not mesh_instance:
-		return
-
-	# Create or get material
-	var material = mesh_instance.get_surface_override_material(0)
-	if not material:
-		material = StandardMaterial3D.new()
-		mesh_instance.set_surface_override_material(0, material)
-
-	if has_berries:
-		# Bush has berries - green
-		material.albedo_color = Color(0.2, 0.8, 0.2)
-	else:
-		# Bush is empty - brown
-		material.albedo_color = Color(0.6, 0.4, 0.2)
+	"""Show or hide berry objects based on whether the bush has berries"""
+	# If berry objects haven't been found yet, try to find them
+	if berry_objects.is_empty() and berry_bush_model:
+		_find_berry_objects()
+	
+	# Show or hide all berry objects
+	for berry in berry_objects:
+		if berry:
+			berry.visible = has_berries
 
 @rpc("authority", "call_remote", "reliable")
 func sync_bush_state(new_has_berries: bool) -> void:
