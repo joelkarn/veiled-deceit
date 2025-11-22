@@ -90,6 +90,14 @@ const MELEE_BOX_SIZE := Vector3(1.8, 1.2, 1.6)
 const BOW_RAYCAST_RANGE := 20.0
 const BOW_DAMAGE := 12.0
 
+# Arrow scene for visual projectiles
+var arrow_scene: PackedScene = preload("res://scenes/arrow.tscn")
+
+# Debug line for bow attacks
+var debug_line: MeshInstance3D = null
+var debug_line_mesh: ImmediateMesh = null
+@export var show_bow_debug_line: bool = true
+
 var auto_attack_on_cooldown := false
 var melee_area: Area3D
 var melee_shape: CollisionShape3D
@@ -147,6 +155,7 @@ func _ready() -> void:
 	_create_melee_area()
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
+	_create_debug_line()
 
 	# Setup camera after everything is ready
 	call_deferred("_setup_camera")
@@ -591,44 +600,83 @@ func _perform_bow_attack() -> void:
 	if animation_player and animation_player.has_animation("attack"):
 		animation_player.play("attack")
 
-	# Perform raycast from camera center
+	# Perform raycast from camera center to find what we're aiming at
 	if camera:
 		var space_state = get_world_3d().direct_space_state
-		var from = camera.global_position
-		var to = from + (-camera.global_transform.basis.z * BOW_RAYCAST_RANGE)
+		var camera_from = camera.global_position
+		var camera_to = camera_from + (-camera.global_transform.basis.z * BOW_RAYCAST_RANGE)
 
-		var query = PhysicsRayQueryParameters3D.create(from, to)
-		query.collision_mask = 2  # Layer 2 = Players/Entities
-		query.exclude = [self]  # Don't hit ourselves
+		# First raycast: from camera through crosshair to find target
+		var camera_query = PhysicsRayQueryParameters3D.create(camera_from, camera_to)
+		camera_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities) - hit everything
+		camera_query.exclude = [self]  # Don't hit ourselves
 
-		var result = space_state.intersect_ray(query)
+		var camera_result = space_state.intersect_ray(camera_query)
 
-		if result and result.has("collider"):
-			var body = result.collider
+		if camera_result and camera_result.has("collider"):
+			var target_body = camera_result["collider"]
+			var camera_hit_position = camera_result["position"]
 
-			if body.has_method("take_damage"):
-				# Process damage
-				if multiplayer.is_server():
-					# Host processes damage directly
-					body.take_damage(BOW_DAMAGE, player_id)
+			# Second raycast: from player to the exact hit position - check line of sight
+			var player_from = global_position + Vector3(0, 1.5, 0)  # Shoot from chest height
+			var player_to = camera_hit_position  # Aim for exact position camera hit
+
+			var player_query = PhysicsRayQueryParameters3D.create(player_from, player_to)
+			player_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities)
+			player_query.exclude = [self]  # Don't hit ourselves
+
+			var player_result = space_state.intersect_ray(player_query)
+
+			# Determine what we actually hit from player perspective
+			var actual_hit_body = null
+			var actual_hit_position = player_to
+			var hit_intended_target = false
+
+			if player_result.has("collider"):
+				actual_hit_body = player_result["collider"]
+				actual_hit_position = player_result["position"]
+				hit_intended_target = (actual_hit_body == target_body)
+
+			# Draw debug line (local only)
+			if is_local_player:
+				_draw_debug_line(player_from, actual_hit_position, hit_intended_target)
+
+			# Spawn arrow on whatever we hit (sync across network)
+			if actual_hit_body:
+				var body_path = actual_hit_body.get_path()
+
+				# Spawn arrow locally
+				_spawn_arrow(actual_hit_position, (player_to - player_from).normalized(), actual_hit_body)
+
+				# Sync arrow spawn to all other clients
+				if multiplayer.multiplayer_peer != null:
+					rpc("_sync_arrow_spawn", actual_hit_position, (player_to - player_from).normalized(), body_path)
+
+				# Deal damage only if it's a damageable target
+				if actual_hit_body.has_method("take_damage"):
+					if multiplayer.is_server():
+						# Host processes damage directly
+						actual_hit_body.take_damage(BOW_DAMAGE, player_id)
+					else:
+						# Client sends damage request to host
+						var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+						if network_manager:
+							var body_name = ""
+							var body_peer_id = 0
+
+							# Check if it's a player
+							if actual_hit_body.get("player_id") != null:
+								body_peer_id = actual_hit_body.player_id
+								body_name = "Player_" + str(body_peer_id)
+							else:
+								# It's an enemy or other object
+								body_name = actual_hit_body.name
+
+							network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, BOW_DAMAGE)
+
+					print("Bow hit and damaged: ", actual_hit_body.name)
 				else:
-					# Client sends damage request to host
-					var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
-					if network_manager:
-						var body_name = ""
-						var body_peer_id = 0
-
-						# Check if it's a player
-						if body.get("player_id") != null:
-							body_peer_id = body.player_id
-							body_name = "Player_" + str(body_peer_id)
-						else:
-							# It's an enemy or other object
-							body_name = body.name
-
-						network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, BOW_DAMAGE)
-
-				print("Bow hit: ", body.name)
+					print("Bow hit: ", actual_hit_body.name, " (no damage)")
 
 	auto_attack_active = false
 
@@ -738,6 +786,89 @@ func _update_crosshair_visibility() -> void:
 		crosshair_ui.show_crosshair()
 	else:
 		crosshair_ui.hide_crosshair()
+
+# ----------------------------
+# Bow attack helpers
+# ----------------------------
+
+## Create debug line mesh for visualizing bow shots
+func _create_debug_line() -> void:
+	debug_line_mesh = ImmediateMesh.new()
+	debug_line = MeshInstance3D.new()
+	debug_line.mesh = debug_line_mesh
+	debug_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Add to scene root, not to player, so it uses global coordinates
+	get_tree().current_scene.call_deferred("add_child", debug_line)
+
+## Draw a debug line from start to end position
+func _draw_debug_line(start: Vector3, end: Vector3, hit_success: bool) -> void:
+	if not show_bow_debug_line or not is_local_player or not debug_line_mesh:
+		return
+
+	# Clear previous line
+	debug_line_mesh.clear_surfaces()
+
+	# Create material
+	var material = StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.vertex_color_use_as_albedo = false
+	material.disable_receive_shadows = true
+
+	# Green if hit, red if blocked
+	if hit_success:
+		material.albedo_color = Color(0.0, 1.0, 0.0, 0.8)
+	else:
+		material.albedo_color = Color(1.0, 0.0, 0.0, 0.8)
+
+	# Draw line in global space
+	debug_line_mesh.surface_begin(Mesh.PRIMITIVE_LINES, material)
+	debug_line_mesh.surface_add_vertex(start)
+	debug_line_mesh.surface_add_vertex(end)
+	debug_line_mesh.surface_end()
+
+	# Make sure debug_line is at origin for global coordinates
+	if debug_line:
+		debug_line.global_position = Vector3.ZERO
+
+	# Clear line after a short delay
+	await get_tree().create_timer(0.5).timeout
+	if debug_line_mesh:
+		debug_line_mesh.clear_surfaces()
+
+## Spawn an arrow at the hit position and attach it to the hit object
+func _spawn_arrow(hit_position: Vector3, direction: Vector3, hit_object: Node) -> void:
+	if not arrow_scene:
+		return
+
+	var arrow = arrow_scene.instantiate()
+
+	# Add arrow to the scene
+	get_tree().current_scene.add_child(arrow)
+
+	# Slightly embed the arrow into the surface (move back along direction)
+	arrow.global_position = hit_position - direction * 0.25
+
+	# Orient arrow to point in the direction of travel
+	# Create a basis that points forward in the direction vector
+	var arrow_basis = Basis.looking_at(direction, Vector3.UP)
+	arrow.global_transform.basis = arrow_basis
+
+	# Parent arrow to the hit object so it moves with it
+	if hit_object and hit_object is Node3D:
+		# Reparent to hit object
+		var local_transform = arrow.global_transform
+		arrow.get_parent().remove_child(arrow)
+		hit_object.add_child(arrow)
+		arrow.global_transform = local_transform
+
+## RPC to sync arrow spawns across all clients
+@rpc("any_peer", "call_remote", "reliable")
+func _sync_arrow_spawn(hit_position: Vector3, direction: Vector3, body_path: NodePath) -> void:
+	# Get the hit object from path
+	var hit_object = get_node_or_null(body_path)
+	if hit_object:
+		_spawn_arrow(hit_position, direction, hit_object)
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open
