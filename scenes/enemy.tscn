@@ -18,5 +18,10 @@ mesh = SubResource("SphereMesh_enemy")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("SphereShape3D_enemy")
 
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.5
+target_desired_distance = 0.5
+path_max_distance = 3.0
+
 [node name="HealthBar" type="Node3D" parent="."]
 script = ExtResource("2_health_bar")
