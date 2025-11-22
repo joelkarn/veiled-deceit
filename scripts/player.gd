@@ -142,6 +142,9 @@ func _ready() -> void:
 	collision_layer = 2  # Player is on layer 2
 	collision_mask = 1    # Player only collides with layer 1 (environment)
 
+	# Add to players group so enemies can find players
+	add_to_group("players")
+
 	# Set multiplayer authority
 	call_deferred("_set_multiplayer_authority")
 
@@ -202,10 +205,9 @@ func _input(event: InputEvent) -> void:
 		_update_equipped_item()
 		if equipped_item_data and equipped_item_data is BookData:
 			_start_reading_book()
-		else:
-			auto_attack()
 
 	if event.is_action_released("attack"):
+		input_buffer["attack"] = false
 		# Stop reading book when left click is released
 		if is_reading_book:
 			_stop_reading_book()
@@ -242,6 +244,10 @@ func _physics_process(delta: float) -> void:
 			if _yaw_key_active:
 				var yaw_axis := Input.get_axis("rotate_right", "rotate_left")
 				rotate_y(deg_to_rad(key_yaw_speed_deg) * yaw_axis * delta)
+
+			# Handle continuous attack when holding button
+			if Input.is_action_pressed("attack") and not is_reading_book:
+				auto_attack()
 
 			# Process movement immediately (client-side authority - includes jump)
 			process_movement(delta)
