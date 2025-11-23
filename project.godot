@@ -14,14 +14,6 @@ config/name="Veiled Deceit"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
-[display]
-
-window/size/viewport_width=1920
-window/size/viewport_height=1080
-window/size/mode=3
-window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
-
 [audio]
 
 driver/enable_input=true
@@ -33,6 +25,14 @@ InventoryManager="*res://scripts/inventory_manager.gd"
 HarvestUIManager="*res://scripts/harvest_ui_manager.gd"
 VoiceManager="*res://scripts/voice_manager.gd"
 QuestManager="*res://scripts/quest_manager.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=3
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [input]
 
