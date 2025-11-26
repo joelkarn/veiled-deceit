@@ -7,10 +7,24 @@ extends InteractableBase
 
 var is_picked_up: bool = false
 
-@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+# Try to find the model node (for GLB models) or mesh instance (for simple meshes)
+var model_node: Node3D = null
+@onready var mesh_instance: MeshInstance3D = get_node_or_null("MeshInstance3D")
 
 func _ready() -> void:
 	super._ready()
+	# Try to find the model node (GLB models are typically named after the file or have a specific structure)
+	# Check common names: axe_model, bow_model, or the first Node3D child that's not CollisionShape3D
+	for child in get_children():
+		if child is Node3D and not child is CollisionShape3D:
+			if child.name.ends_with("_model"):
+				model_node = child
+				break
+			elif child.get_child_count() > 0:
+				# GLB models often have a root Node3D with children
+				model_node = child
+				break
+	
 	_update_prompt()
 	update_visibility()
 
@@ -49,7 +63,11 @@ func interact(player: Node) -> void:
 		print("ItemPickup: Failed to add item to inventory (full?)")
 
 func update_visibility() -> void:
-	if mesh_instance:
+	# Hide/show the model node if it exists (for GLB models)
+	if model_node:
+		model_node.visible = not is_picked_up
+	# Otherwise hide/show the mesh instance (for simple meshes)
+	elif mesh_instance:
 		mesh_instance.visible = not is_picked_up
 
 @rpc("authority", "call_remote", "reliable")
