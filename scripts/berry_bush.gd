@@ -42,9 +42,8 @@ func _process(delta: float) -> void:
 		var player_id = harvesting_player.get("player_id")
 		var local_player_id = multiplayer.get_unique_id()
 		if player_id == local_player_id:
-			var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-			if harvest_ui:
-				harvest_ui.update_harvest_progress(harvest_progress, harvest_duration)
+			if HarvestUIManager:
+				HarvestUIManager.update_harvest_progress(harvest_progress, harvest_duration)
 
 		# Notify clients of progress (not the host, they update locally above)
 		rpc("sync_harvest_progress", harvest_progress)
@@ -70,9 +69,8 @@ func start_harvest(player: Node) -> void:
 	# Show UI for the harvesting player (if they're local/host)
 	var local_player_id = multiplayer.get_unique_id()
 	if player_id == local_player_id:
-		var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-		if harvest_ui:
-			harvest_ui.start_harvest_ui(self, harvest_duration)
+		if HarvestUIManager:
+			HarvestUIManager.start_harvest_ui(self, harvest_duration)
 
 	# Notify OTHER clients that harvesting started
 	# For non-host clients in the peers list
@@ -105,9 +103,8 @@ func cancel_harvest() -> void:
 	if player_id != null:
 		var local_player_id = multiplayer.get_unique_id()
 		if player_id == local_player_id:
-			var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-			if harvest_ui:
-				harvest_ui.cancel_harvest_ui()
+			if HarvestUIManager:
+				HarvestUIManager.cancel_harvest_ui()
 
 	# Notify clients
 	rpc("sync_harvest_cancelled")
@@ -144,9 +141,8 @@ func _complete_harvest() -> void:
 
 		# Hide UI for local player (host) if they were harvesting
 		if player_id == local_player_id:
-			var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-			if harvest_ui:
-				harvest_ui.cancel_harvest_ui()
+			if HarvestUIManager:
+				HarvestUIManager.cancel_harvest_ui()
 
 		update_appearance()
 		rpc("sync_bush_state", false)
@@ -195,18 +191,16 @@ func sync_harvest_started(player_id: int) -> void:
 	# Show UI for local player who is harvesting
 	var local_player_id = multiplayer.get_unique_id()
 	if player_id == local_player_id:
-		var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-		if harvest_ui:
-			harvest_ui.start_harvest_ui(self, harvest_duration)
+		if HarvestUIManager:
+			HarvestUIManager.start_harvest_ui(self, harvest_duration)
 
 @rpc("authority", "call_remote", "reliable")
 func sync_harvest_progress(progress: float) -> void:
 	harvest_progress = progress
 
 	# Update UI if we have one visible (means we're harvesting)
-	var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-	if harvest_ui and harvest_ui.current_harvest_bar and harvest_ui.current_harvest_bar.visible:
-		harvest_ui.update_harvest_progress(progress, harvest_duration)
+	if HarvestUIManager and HarvestUIManager.current_harvest_bar and HarvestUIManager.current_harvest_bar.visible:
+		HarvestUIManager.update_harvest_progress(progress, harvest_duration)
 
 @rpc("authority", "call_remote", "reliable")
 func sync_harvest_cancelled() -> void:
@@ -214,9 +208,8 @@ func sync_harvest_cancelled() -> void:
 	harvest_progress = 0.0
 
 	# Hide UI for local player
-	var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-	if harvest_ui:
-		harvest_ui.cancel_harvest_ui()
+	if HarvestUIManager:
+		HarvestUIManager.cancel_harvest_ui()
 
 @rpc("authority", "call_remote", "reliable")
 func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
@@ -229,9 +222,8 @@ func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
 		QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_count)
 
 	# Hide UI for local player
-	var harvest_ui = get_node_or_null("/root/HarvestUIManager")
-	if harvest_ui:
-		harvest_ui.cancel_harvest_ui()
+	if HarvestUIManager:
+		HarvestUIManager.cancel_harvest_ui()
 
 func can_interact() -> bool:
 	return has_berries and not is_being_harvested

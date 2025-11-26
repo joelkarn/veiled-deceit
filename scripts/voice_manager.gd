@@ -12,7 +12,7 @@ var peer_audio_players: Dictionary = {}  # peer_id -> AudioStreamPlayer
 var peer_audio_playbacks: Dictionary = {}  # peer_id -> AudioStreamGeneratorPlayback
 
 # Voice transmission state
-var voice_transmission_enabled: bool = true
+var voice_transmission_enabled: bool = false
 var send_timer: float = 0.0
 const SEND_INTERVAL: float = 0.02  # Send every 20ms
 
@@ -49,11 +49,17 @@ func _ready() -> void:
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 
-	# Create on-screen talk indicator
+	enable_voice_chat()
+	set_push_to_talk(true)
+
+func secondary_start() -> void:
+	await get_tree().process_frame
+	_setup_audio_bus()
+	# _setup_microphone_capture()
+
+func activate_voice_manager() -> void:
 	_create_talk_indicator()
 	_create_talking_players_list()
-
-	print("VoiceManager: Ready! Voice chat enabled.")
 
 func _setup_audio_bus() -> void:
 	"""Create and configure the 'Mic' audio bus for capture"""

@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://book_ui_scene"]
+[gd_scene load_steps=2 format=3 uid="uid://vsemw7rlb7n0"]
 
-[ext_resource type="Script" uid="uid://c8jx7yn9k2pm5" path="res://scripts/book_ui.gd" id="1_book_ui"]
+[ext_resource type="Script" uid="uid://c8jx7yoak2pm5" path="res://scripts/book_ui.gd" id="1_book_ui"]
 
-[node name="BookUI" type="Control"]
+[node name="BookUI" type="Control" unique_id=1257762616]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_book_ui")
 
-[node name="BookContainer" type="CenterContainer" parent="."]
+[node name="BookContainer" type="CenterContainer" parent="." unique_id=481371574]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,15 +20,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="LeftPage" type="Panel" parent="BookContainer"]
+[node name="LeftPage" type="Panel" parent="BookContainer" unique_id=817571526]
 custom_minimum_size = Vector2(300, 400)
 layout_mode = 2
-offset_left = 310.0
-offset_top = 160.0
-offset_right = 610.0
-offset_bottom = 560.0
 
-[node name="LeftText" type="Label" parent="BookContainer/LeftPage"]
+[node name="LeftText" type="Label" parent="BookContainer/LeftPage" unique_id=66079221]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -39,20 +35,18 @@ offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
 text = "Left page text"
-autowrap_mode = 3
 vertical_alignment = 1
+autowrap_mode = 3
 
-[node name="RightPage" type="Panel" parent="BookContainer"]
+[node name="RightPage" type="Panel" parent="BookContainer" unique_id=1170215608]
 custom_minimum_size = Vector2(300, 400)
 layout_mode = 2
-offset_left = 630.0
-offset_top = 160.0
-offset_right = 930.0
-offset_bottom = 560.0
 
-[node name="RightText" type="Label" parent="BookContainer/RightPage"]
+[node name="RightText" type="Label" parent="BookContainer/RightPage" unique_id=54923994]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -63,7 +57,9 @@ offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
 text = "Right page text"
-autowrap_mode = 3
 vertical_alignment = 1
+autowrap_mode = 3

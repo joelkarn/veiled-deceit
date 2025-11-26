@@ -126,7 +126,7 @@ func _find_empty_slot() -> int:
 func sync_chest_inventory(inventory: Array) -> void:
 	chest_inventory = inventory
 	# Update UI if it's open
-	var ui_manager = get_node_or_null("/root/world/UIManager")
+	var ui_manager = get_tree().current_scene.get_node_or_null("UIManager")
 	if ui_manager and ui_manager.has_method("update_chest_ui"):
 		ui_manager.update_chest_ui(inventory)
 
@@ -136,7 +136,7 @@ func open_chest_ui(inventory: Array) -> void:
 	chest_inventory = inventory
 	
 	# Tell UI manager to show chest UI
-	var ui_manager = get_node_or_null("/root/world/UIManager")
+	var ui_manager = get_tree().current_scene.get_node_or_null("UIManager")
 	if ui_manager and ui_manager.has_method("show_chest_ui"):
 		ui_manager.show_chest_ui(self, inventory)
 

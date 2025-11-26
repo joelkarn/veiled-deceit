@@ -7,25 +7,22 @@ var is_menu_open := false
 var chest_ui: Control = null
 
 func _ready() -> void:
-	# Check if lobby is visible - if so, don't capture mouse yet
-	var lobby = get_node_or_null("../UILayers/LobbyLayer/Lobby")
-	if lobby and lobby.visible:
-		# Lobby will handle mouse visibility
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	else:
-		# Start with mouse captured (when lobby is hidden/connected)
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if HarvestUIManager:
+		HarvestUIManager.setup_harvest_layer()
+	if VoiceManager:
+		VoiceManager.secondary_start()
 
 func _input(event: InputEvent) -> void:
 	# Don't process input if multiplayer is disconnected (prevents crashes during shutdown)
 	if multiplayer.multiplayer_peer == null:
 		return
-	
+
 	# Don't process input if network manager is shutting down
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):  # ESC key
 		# Check if settings menu is open first - try new path first, then fallback
 		var pause_menu = get_node_or_null("../UILayers/MenuLayer/PauseMenu")
@@ -41,7 +38,7 @@ func _input(event: InputEvent) -> void:
 
 func toggle_menu() -> void:
 	is_menu_open = !is_menu_open
-	
+
 	if is_menu_open:
 		open_menu()
 	else:
@@ -64,15 +61,14 @@ func is_menu_active() -> bool:
 func show_chest_ui(chest: Node, inventory: Array) -> void:
 	if not chest_ui:
 		# Find or create chest UI
-		chest_ui = get_node_or_null("../UILayers/ChestLayer/ChestUI")
+		chest_ui = get_tree().current_scene.get_node_or_null("UILayers/ChestLayer/ChestUI")
 		if not chest_ui:
 			print("UIManager: ChestUI not found in scene")
 			return
-	
+
 	if chest_ui.has_method("show_chest"):
 		chest_ui.show_chest(chest, inventory)
 
 func update_chest_ui(inventory: Array) -> void:
 	if chest_ui and chest_ui.visible and chest_ui.has_method("update_chest_inventory"):
 		chest_ui.update_chest_inventory(inventory)
-

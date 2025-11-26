@@ -10,21 +10,21 @@ func _ready() -> void:
 		QuestManager.quests_changed.connect(_refresh_quests)
 		QuestManager.quest_progress_updated.connect(_on_quest_progress_updated)
 		QuestManager.quest_completed.connect(_on_quest_completed)
-	
+
 	# Initial display
 	_refresh_quests()
 
 func _refresh_quests() -> void:
 	if not quest_list:
 		return
-	
+
 	# Clear existing quest entries
 	for child in quest_list.get_children():
 		child.queue_free()
-	
+
 	# Get active quests
-	var quests = QuestManager.get_active_quests()
-	
+	var quests = QuestManager.get_active_quests() if QuestManager else []
+
 	# Create UI for each quest
 	for quest in quests:
 		_create_quest_entry(quest)
@@ -33,7 +33,7 @@ func _create_quest_entry(quest: QuestData) -> void:
 	# Create container for this quest
 	var quest_container = VBoxContainer.new()
 	quest_container.name = "Quest_" + quest.quest_id
-	
+
 	# Quest title label
 	var title_label = Label.new()
 	title_label.text = quest.quest_name
@@ -43,7 +43,7 @@ func _create_quest_entry(quest: QuestData) -> void:
 	else:
 		title_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.8))  # Light yellow for active
 	quest_container.add_child(title_label)
-	
+
 	# Description label
 	var desc_label = Label.new()
 	desc_label.text = quest.description
@@ -51,7 +51,7 @@ func _create_quest_entry(quest: QuestData) -> void:
 	desc_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	quest_container.add_child(desc_label)
-	
+
 	# Progress label
 	var progress_label = Label.new()
 	progress_label.name = "Progress_" + quest.quest_id
@@ -62,26 +62,26 @@ func _create_quest_entry(quest: QuestData) -> void:
 	else:
 		progress_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 	quest_container.add_child(progress_label)
-	
+
 	# Separator
 	var separator = HSeparator.new()
 	separator.add_theme_constant_override("separation", 10)
 	quest_container.add_child(separator)
-	
+
 	quest_list.add_child(quest_container)
 
 func _on_quest_progress_updated(quest_id: String) -> void:
 	# Find and update the progress label for this quest
-	var quest = QuestManager.get_quest(quest_id)
+	var quest = QuestManager.get_quest(quest_id) if QuestManager else null
 	if not quest:
 		return
-	
+
 	var progress_label = quest_list.get_node_or_null("Quest_" + quest_id + "/Progress_" + quest_id)
 	if progress_label:
 		progress_label.text = "Progress: " + quest.get_progress_text()
 		if quest.is_completed:
 			progress_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3))
-	
+
 	# Update title color if completed
 	if quest.is_completed:
 		var quest_container = quest_list.get_node_or_null("Quest_" + quest_id)

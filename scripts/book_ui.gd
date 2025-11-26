@@ -11,20 +11,21 @@ var current_book_data: BookData = null
 
 func _ready() -> void:
 	hide()
+	var current_scene = get_tree().current_scene
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func show_book(book_data: BookData) -> void:
 	if not book_data:
 		return
-	
+
 	current_book_data = book_data
-	
+
 	# Set the text content
 	if left_text:
 		left_text.text = book_data.left_page_text
 	if right_text:
 		right_text.text = book_data.right_page_text
-	
+
 	# Show the book UI
 	show()
 	mouse_filter = Control.MOUSE_FILTER_STOP
