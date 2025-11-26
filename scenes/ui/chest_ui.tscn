@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://chest_ui_scene"]
+[gd_scene load_steps=2 format=3 uid="uid://ji1l6eoqhvra"]
 
 [ext_resource type="Script" path="res://scripts/chest_ui.gd" id="1_chest_ui"]
 
-[node name="ChestUI" type="Control"]
+[node name="ChestUI" type="Control" unique_id=1037307101]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_chest_ui")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=1071057655]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,7 +22,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.5)
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="." unique_id=931423127]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -36,47 +36,47 @@ offset_bottom = 250.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel" unique_id=702206706]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="Panel/VBoxContainer"]
+[node name="Title" type="Label" parent="Panel/VBoxContainer" unique_id=241464475]
 layout_mode = 2
 text = "Shared Chest"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="Panel/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="Panel/VBoxContainer" unique_id=1259284189]
 layout_mode = 2
 
-[node name="ChestLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="ChestLabel" type="Label" parent="Panel/VBoxContainer" unique_id=415737574]
 layout_mode = 2
 text = "Chest Inventory:"
 
-[node name="ChestInventory" type="GridContainer" parent="Panel/VBoxContainer"]
+[node name="ChestInventory" type="GridContainer" parent="Panel/VBoxContainer" unique_id=1265979430]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 columns = 9
 
-[node name="HSeparator2" type="HSeparator" parent="Panel/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="Panel/VBoxContainer" unique_id=1371406333]
 layout_mode = 2
 
-[node name="PlayerLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="PlayerLabel" type="Label" parent="Panel/VBoxContainer" unique_id=2028197303]
 layout_mode = 2
 text = "Your Inventory:"
 
-[node name="PlayerInventory" type="GridContainer" parent="Panel/VBoxContainer"]
+[node name="PlayerInventory" type="GridContainer" parent="Panel/VBoxContainer" unique_id=548151699]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 columns = 9
 
-[node name="HSeparator3" type="HSeparator" parent="Panel/VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="Panel/VBoxContainer" unique_id=1481713678]
 layout_mode = 2
 
-[node name="Instructions" type="Label" parent="Panel/VBoxContainer"]
+[node name="Instructions" type="Label" parent="Panel/VBoxContainer" unique_id=881205571]
 layout_mode = 2
 text = "Click chest item to withdraw | Click your item to deposit | Press ESC to close"
 horizontal_alignment = 1
 
-[node name="CloseButton" type="Button" parent="Panel/VBoxContainer"]
+[node name="CloseButton" type="Button" parent="Panel/VBoxContainer" unique_id=764340418]
 layout_mode = 2
 text = "Close (ESC)"

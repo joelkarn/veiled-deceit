@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=30 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
 [ext_resource type="Texture2D" uid="uid://cjcgjp0geraqd" path="res://assets/textures/grids/Orange/texture_09.png" id="2_c35nn"]
@@ -6,23 +6,21 @@
 [ext_resource type="Texture2D" uid="uid://bm5h5tfy8aiyu" path="res://assets/textures/grids/Green/texture_09.png" id="4_o6m22"]
 [ext_resource type="Script" uid="uid://bu8cuqw144nns" path="res://scripts/ui_manager.gd" id="7_ui"]
 [ext_resource type="PackedScene" uid="uid://cgj0sdw2q4hkr" path="res://scenes/pause_menu.tscn" id="8_pause"]
-[ext_resource type="Script" uid="uid://sta3v20ef3k8" path="res://scripts/network_manager.gd" id="9_network"]
-[ext_resource type="PackedScene" path="res://scenes/lobby.tscn" id="10_lobby"]
 [ext_resource type="PackedScene" uid="uid://bu5aon18jysvy" path="res://scenes/ui/toolbar.tscn" id="11_toolbar"]
-[ext_resource type="Script" uid="uid://csxv21wnvb2yb" path="res://scripts/navigation_baker.gd" id="12_navigation_baker"]
 [ext_resource type="PackedScene" uid="uid://c8jmhp6qb5ywn" path="res://scenes/berry_bush.tscn" id="12_berry_bush"]
+[ext_resource type="Script" uid="uid://be6sadnourii1" path="res://scripts/navigation_baker.gd" id="12_navigation_baker"]
 [ext_resource type="PackedScene" uid="uid://b3k2xj8vwxmt" path="res://scenes/ui/interaction_prompt.tscn" id="13_interaction_prompt"]
-[ext_resource type="PackedScene" uid="uid://axe_pickup_scene" path="res://scenes/axe_pickup.tscn" id="14_axe_pickup"]
-[ext_resource type="PackedScene" uid="uid://chest_scene" path="res://scenes/chest.tscn" id="15_chest"]
-[ext_resource type="PackedScene" uid="uid://chest_ui_scene" path="res://scenes/ui/chest_ui.tscn" id="16_chest_ui"]
-[ext_resource type="PackedScene" uid="uid://enemy_spawner_scene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
-[ext_resource type="PackedScene" uid="uid://bow_pickup_scene_01" path="res://scenes/bow_pickup.tscn" id="18_bow_pickup"]
-[ext_resource type="PackedScene" uid="uid://crosshair_ui_scene" path="res://scenes/ui/crosshair.tscn" id="19_crosshair"]
-[ext_resource type="PackedScene" uid="uid://dh8y4vg7n2pk6" path="res://scenes/book_pickup.tscn" id="20_book_pickup"]
-[ext_resource type="PackedScene" uid="uid://book_ui_scene" path="res://scenes/ui/book_ui.tscn" id="21_book_ui"]
-[ext_resource type="PackedScene" uid="uid://sign_scene" path="res://scenes/sign.tscn" id="22_sign"]
-[ext_resource type="PackedScene" uid="uid://sign_ui_scene" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
-[ext_resource type="PackedScene" uid="uid://quest_log_scene" path="res://scenes/ui/quest_log.tscn" id="24_quest_log"]
+[ext_resource type="PackedScene" uid="uid://ci7coj77n5ph7" path="res://scenes/axe_pickup.tscn" id="14_axe_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/chest.tscn" id="15_chest"]
+[ext_resource type="PackedScene" uid="uid://ji1l6eoqhvra" path="res://scenes/ui/chest_ui.tscn" id="16_chest_ui"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/bow_pickup.tscn" id="18_bow_pickup"]
+[ext_resource type="PackedScene" uid="uid://c3h13k6mrh6xk" path="res://scenes/ui/crosshair.tscn" id="19_crosshair"]
+[ext_resource type="PackedScene" path="res://scenes/book_pickup.tscn" id="20_book_pickup"]
+[ext_resource type="PackedScene" uid="uid://vsemw7rlb7n0" path="res://scenes/ui/book_ui.tscn" id="21_book_ui"]
+[ext_resource type="PackedScene" path="res://scenes/sign.tscn" id="22_sign"]
+[ext_resource type="PackedScene" uid="uid://qccp0oiaucmb" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
+[ext_resource type="PackedScene" uid="uid://bcajlij5cylia" path="res://scenes/ui/quest_log.tscn" id="24_quest_log"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_oulvc"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -41,6 +39,11 @@ fog_enabled = true
 fog_light_color = Color(1, 1, 1, 1)
 fog_density = 0.001
 
+[sub_resource type="NavigationMesh" id="NavigationMesh_jscy8"]
+geometry_parsed_geometry_type = 1
+agent_height = 2.0
+agent_max_climb = 0.5
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k3spb"]
 albedo_texture = ExtResource("1_1be4y")
 uv1_triplanar = true
@@ -56,126 +59,114 @@ uv1_triplanar = true
 albedo_texture = ExtResource("4_o6m22")
 uv1_triplanar = true
 
-[node name="world" type="Node3D"]
+[node name="world" type="Node3D" unique_id=238736076]
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=635195609]
 transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
 shadow_enabled = true
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1218465300]
 environment = SubResource("Environment_l67pa")
 
-[node name="map" type="Node3D" parent="."]
+[node name="map" type="Node3D" parent="." unique_id=1159814001]
 
-[node name="NavigationRegion3D" type="NavigationRegion3D" parent="map"]
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="map" unique_id=648618663]
+navigation_mesh = SubResource("NavigationMesh_jscy8")
 script = ExtResource("12_navigation_baker")
 
-[node name="floor" type="CSGBox3D" parent="map/NavigationRegion3D"]
+[node name="floor" type="CSGBox3D" parent="map/NavigationRegion3D" unique_id=16328630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 material_override = SubResource("StandardMaterial3D_k3spb")
 use_collision = true
-collision_layer = 1
 size = Vector3(1000, 1, 1000)
 
-[node name="box" type="CSGBox3D" parent="map/NavigationRegion3D"]
+[node name="box" type="CSGBox3D" parent="map/NavigationRegion3D" unique_id=1635995824]
 transform = Transform3D(0.813963, 0, 0.580916, 0, 1, 0, -0.580916, 0, 0.813963, 2.75391, 0.5, 8.56194)
 material_override = SubResource("StandardMaterial3D_cdacw")
 use_collision = true
-collision_layer = 1
 
-[node name="box2" type="CSGBox3D" parent="map/NavigationRegion3D"]
+[node name="box2" type="CSGBox3D" parent="map/NavigationRegion3D" unique_id=344711048]
 transform = Transform3D(0.964613, 0, 0.263671, 0, 1, 0, -0.263671, 0, 0.964613, 1.33065, 1, 10.0395)
 material_override = SubResource("StandardMaterial3D_esmrm")
 use_collision = true
-collision_layer = 1
 size = Vector3(2, 2, 2)
 
-[node name="box3" type="CSGBox3D" parent="map/NavigationRegion3D"]
+[node name="box3" type="CSGBox3D" parent="map/NavigationRegion3D" unique_id=1230573373]
 transform = Transform3D(0.598492, 0, -0.801128, 0, 1, 0, 0.801128, 0, 0.598492, -4.61446, 1.5, 10.8068)
 material_override = SubResource("StandardMaterial3D_ibu3s")
 use_collision = true
-collision_layer = 1
 size = Vector3(5.65247, 3, 3)
 
-[node name="BerryBush" parent="map" instance=ExtResource("12_berry_bush")]
+[node name="BerryBush" parent="map" unique_id=1377138571 instance=ExtResource("12_berry_bush")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 5)
 
-[node name="BerryBush2" parent="map" instance=ExtResource("12_berry_bush")]
+[node name="BerryBush2" parent="map" unique_id=1152892768 instance=ExtResource("12_berry_bush")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 5)
 
-[node name="AxePickup" parent="map" instance=ExtResource("14_axe_pickup")]
+[node name="AxePickup" parent="map" unique_id=1128530421 instance=ExtResource("14_axe_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.75, 0)
 
-[node name="BowPickup" parent="map" instance=ExtResource("18_bow_pickup")]
+[node name="BowPickup" parent="map" unique_id=1080495393 instance=ExtResource("18_bow_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.75, 0)
 
-[node name="BookPickup" parent="map" instance=ExtResource("20_book_pickup")]
+[node name="BookPickup" parent="map" unique_id=1241476017 instance=ExtResource("20_book_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.75, 0)
 
-[node name="Sign" parent="map" instance=ExtResource("22_sign")]
+[node name="Sign" parent="map" unique_id=1111543818 instance=ExtResource("22_sign")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
 
-[node name="Chest" parent="map" instance=ExtResource("15_chest")]
+[node name="Chest" parent="map" unique_id=1988067173 instance=ExtResource("15_chest")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
 
-[node name="EnemySpawner" parent="map" instance=ExtResource("17_enemy_spawner")]
+[node name="EnemySpawner" parent="map" unique_id=235749264 instance=ExtResource("17_enemy_spawner")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10)
 
-[node name="NetworkManager" type="Node" parent="."]
-script = ExtResource("9_network")
-
-[node name="UIManager" type="Node" parent="."]
+[node name="UIManager" type="Node" parent="." unique_id=2032296841]
 script = ExtResource("7_ui")
 
-[node name="UILayers" type="Node" parent="."]
+[node name="UILayers" type="Node" parent="." unique_id=778014408]
 
-[node name="HealthBarsLayer" type="CanvasLayer" parent="UILayers"]
+[node name="HealthBarsLayer" type="CanvasLayer" parent="UILayers" unique_id=2117027376]
 
-[node name="MenuLayer" type="CanvasLayer" parent="UILayers"]
+[node name="MenuLayer" type="CanvasLayer" parent="UILayers" unique_id=1956920444]
 layer = 10
 
-[node name="PauseMenu" parent="UILayers/MenuLayer" instance=ExtResource("8_pause")]
+[node name="PauseMenu" parent="UILayers/MenuLayer" unique_id=301943051 instance=ExtResource("8_pause")]
 
-[node name="LobbyLayer" type="CanvasLayer" parent="UILayers"]
-layer = 5
-
-[node name="Lobby" parent="UILayers/LobbyLayer" instance=ExtResource("10_lobby")]
-
-[node name="ToolbarLayer" type="CanvasLayer" parent="UILayers"]
+[node name="ToolbarLayer" type="CanvasLayer" parent="UILayers" unique_id=1687052102]
 layer = 8
 
-[node name="Toolbar" parent="UILayers/ToolbarLayer" instance=ExtResource("11_toolbar")]
+[node name="Toolbar" parent="UILayers/ToolbarLayer" unique_id=1606310823 instance=ExtResource("11_toolbar")]
 
-[node name="HarvestProgressLayer" type="CanvasLayer" parent="UILayers"]
+[node name="HarvestProgressLayer" type="CanvasLayer" parent="UILayers" unique_id=2092422513]
 layer = 7
 
-[node name="InteractionPromptLayer" type="CanvasLayer" parent="UILayers"]
+[node name="InteractionPromptLayer" type="CanvasLayer" parent="UILayers" unique_id=1695698392]
 layer = 6
 
-[node name="InteractionPrompt" parent="UILayers/InteractionPromptLayer" instance=ExtResource("13_interaction_prompt")]
+[node name="InteractionPrompt" parent="UILayers/InteractionPromptLayer" unique_id=69389502 instance=ExtResource("13_interaction_prompt")]
 
-[node name="ChestLayer" type="CanvasLayer" parent="UILayers"]
+[node name="ChestLayer" type="CanvasLayer" parent="UILayers" unique_id=1063461197]
 layer = 9
 
-[node name="ChestUI" parent="UILayers/ChestLayer" instance=ExtResource("16_chest_ui")]
+[node name="ChestUI" parent="UILayers/ChestLayer" unique_id=445580650 instance=ExtResource("16_chest_ui")]
 
-[node name="CrosshairLayer" type="CanvasLayer" parent="UILayers"]
+[node name="CrosshairLayer" type="CanvasLayer" parent="UILayers" unique_id=1660692960]
 layer = 11
 
-[node name="Crosshair" parent="UILayers/CrosshairLayer" instance=ExtResource("19_crosshair")]
+[node name="Crosshair" parent="UILayers/CrosshairLayer" unique_id=1735979202 instance=ExtResource("19_crosshair")]
 
-[node name="BookUILayer" type="CanvasLayer" parent="UILayers"]
+[node name="BookUILayer" type="CanvasLayer" parent="UILayers" unique_id=1156071173]
 layer = 12
 
-[node name="BookUI" parent="UILayers/BookUILayer" instance=ExtResource("21_book_ui")]
+[node name="BookUI" parent="UILayers/BookUILayer" unique_id=37321006 instance=ExtResource("21_book_ui")]
 
-[node name="SignUILayer" type="CanvasLayer" parent="UILayers"]
+[node name="SignUILayer" type="CanvasLayer" parent="UILayers" unique_id=1518528315]
 layer = 13
 
-[node name="SignUI" parent="UILayers/SignUILayer" instance=ExtResource("23_sign_ui")]
+[node name="SignUI" parent="UILayers/SignUILayer" unique_id=916940984 instance=ExtResource("23_sign_ui")]
 
-[node name="QuestLogLayer" type="CanvasLayer" parent="UILayers"]
+[node name="QuestLogLayer" type="CanvasLayer" parent="UILayers" unique_id=1684464114]
 layer = 2
 
-[node name="QuestLog" parent="UILayers/QuestLogLayer" instance=ExtResource("24_quest_log")]
-
+[node name="QuestLog" parent="UILayers/QuestLogLayer" unique_id=1835997152 instance=ExtResource("24_quest_log")]

@@ -14,7 +14,7 @@ var player_inventory: Array = []
 func _ready() -> void:
 	visible = false
 	close_button.pressed.connect(_on_close_button_pressed)
-	
+
 	# Listen for inventory updates
 	if InventoryManager:
 		InventoryManager.inventory_updated.connect(_on_inventory_updated)
@@ -22,7 +22,7 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		close_ui()
 		get_viewport().set_input_as_handled()
@@ -31,19 +31,20 @@ func show_chest(chest: Node, chest_inv: Array) -> void:
 	chest_node = chest
 	chest_inventory = chest_inv
 	player_id = multiplayer.get_unique_id()
-	player_inventory = InventoryManager.get_inventory(player_id)
-	
+	if InventoryManager:
+		player_inventory = InventoryManager.get_inventory(player_id)
+
 	visible = true
-	
+
 	# Release mouse for UI interaction
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	
+
 	_refresh_ui()
 
 func close_ui() -> void:
 	visible = false
 	chest_node = null
-	
+
 	# Re-capture mouse
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -55,21 +56,21 @@ func _populate_grid(grid: GridContainer, inventory: Array, is_chest: bool) -> vo
 	# Clear existing slots
 	for child in grid.get_children():
 		child.queue_free()
-	
+
 	# Create slots
 	for i in range(inventory.size()):
 		var slot_data = inventory[i]
 		var slot_button = Button.new()
 		slot_button.custom_minimum_size = Vector2(60, 60)
-		
+
 		# Display item info
 		if slot_data["item_id"] != "" and slot_data["quantity"] > 0:
-			var item_data = InventoryManager.get_item_data(slot_data["item_id"])
+			var item_data = InventoryManager.get_item_data(slot_data["item_id"]) if InventoryManager else null
 			if item_data:
 				slot_button.text = item_data.item_name + "\nx" + str(slot_data["quantity"])
 			else:
 				slot_button.text = slot_data["item_id"] + "\nx" + str(slot_data["quantity"])
-			
+
 			# Connect click handler
 			if is_chest:
 				slot_button.pressed.connect(_on_chest_slot_clicked.bind(slot_data["item_id"], slot_data["quantity"]))
@@ -78,13 +79,13 @@ func _populate_grid(grid: GridContainer, inventory: Array, is_chest: bool) -> vo
 		else:
 			slot_button.text = "Empty"
 			slot_button.disabled = true
-		
+
 		grid.add_child(slot_button)
 
 func _on_chest_slot_clicked(item_id: String, quantity: int) -> void:
 	# Withdraw from chest (take 1 item, or all if shift-clicked)
 	var amount = quantity if Input.is_key_pressed(KEY_SHIFT) else 1
-	
+
 	if chest_node and chest_node.has_method("request_withdraw_item"):
 		if multiplayer.is_server():
 			# Host: call directly
@@ -96,7 +97,7 @@ func _on_chest_slot_clicked(item_id: String, quantity: int) -> void:
 func _on_player_slot_clicked(item_id: String, quantity: int) -> void:
 	# Deposit to chest (deposit 1 item, or all if shift-clicked)
 	var amount = quantity if Input.is_key_pressed(KEY_SHIFT) else 1
-	
+
 	if chest_node and chest_node.has_method("request_deposit_item"):
 		if multiplayer.is_server():
 			# Host: call directly
@@ -111,8 +112,9 @@ func _on_close_button_pressed() -> void:
 func _on_inventory_updated(peer_id: int) -> void:
 	# Refresh UI if it's our inventory or we're viewing the chest
 	if visible and peer_id == player_id:
-		player_inventory = InventoryManager.get_inventory(player_id)
-		_refresh_ui()
+		if InventoryManager:
+			player_inventory = InventoryManager.get_inventory(player_id)
+			_refresh_ui()
 
 func update_chest_inventory(inventory: Array) -> void:
 	if visible:

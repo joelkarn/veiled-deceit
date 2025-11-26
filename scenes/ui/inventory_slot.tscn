@@ -1,32 +1,33 @@
 [gd_scene load_steps=2 format=3 uid="uid://dcy7rh3q6nh2j"]
 
-[ext_resource type="Script" path="res://scripts/inventory_slot.gd" id="1"]
+[ext_resource type="Script" uid="uid://d2u2pehtc8v1n" path="res://scripts/inventory_slot.gd" id="1"]
 
-[node name="InventorySlot" type="PanelContainer"]
+[node name="InventorySlot" type="PanelContainer" unique_id=806389070]
 custom_minimum_size = Vector2(64, 64)
 script = ExtResource("1")
+slot_index = null
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1496705421]
 layout_mode = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 4
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=917366303]
 layout_mode = 2
 
-[node name="ItemIcon" type="TextureRect" parent="MarginContainer/VBoxContainer"]
+[node name="ItemIcon" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=615335315]
 layout_mode = 2
 size_flags_vertical = 3
 expand_mode = 1
 stretch_mode = 5
 
-[node name="QuantityLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="QuantityLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1129026686]
 layout_mode = 2
 text = "99"
 horizontal_alignment = 2
 
-[node name="Button" type="Button" parent="."]
+[node name="Button" type="Button" parent="." unique_id=685973882]
 layout_mode = 2
 flat = true

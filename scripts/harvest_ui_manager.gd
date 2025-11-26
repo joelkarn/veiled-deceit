@@ -7,8 +7,9 @@ var current_harvest_bar: Control = null
 var harvest_layer: CanvasLayer = null
 
 func _ready() -> void:
-	# Find the harvest progress layer
-	await get_tree().process_frame
+	pass # Layer setup is now deferred
+
+func setup_harvest_layer() -> void:
 	harvest_layer = get_tree().current_scene.get_node_or_null("UILayers/HarvestProgressLayer")
 	if not harvest_layer:
 		push_error("HarvestUIManager: Could not find HarvestProgressLayer!")

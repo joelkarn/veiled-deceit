@@ -2,6 +2,7 @@ extends CharacterBody3D
 
 # Network properties
 @export var player_id: int = 0
+@export var player_name: String = ""  # Character name (Witch/Hunter/Knight)
 var is_local_player: bool = false
 var is_host: bool = false
 
@@ -186,7 +187,7 @@ func _input(event: InputEvent) -> void:
 		return
 
 	# Don't process input if network manager is shutting down
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
 
@@ -224,7 +225,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Don't process if network manager is shutting down
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
 
@@ -665,7 +666,7 @@ func _perform_bow_attack() -> void:
 						actual_hit_body.take_damage(BOW_DAMAGE, player_id)
 					else:
 						# Client sends damage request to host
-						var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+						var network_manager = NetworkManager
 						if network_manager:
 							var body_name = ""
 							var body_peer_id = 0
@@ -709,7 +710,7 @@ func _on_melee_area_body_entered(body: Node) -> void:
 			body.take_damage(damage, player_id)
 		else:
 			# Client sends damage request to host
-			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+			var network_manager = NetworkManager
 			if network_manager:
 				# Send body information for validation
 				# Try to identify the body - check if it's a player or enemy
@@ -918,7 +919,7 @@ func die() -> void:
 	health = max_health
 
 	# Get spawn position for this player
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	var spawn_pos = position
 	if network_manager and network_manager.spawn_points.size() > 0:
 		var spawn_index = (player_id - 1) % network_manager.spawn_points.size()
@@ -963,7 +964,7 @@ func send_player_input_keep_jump() -> void:
 	if multiplayer.is_server():
 		process_player_input(input_copy)
 	else:
-		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+		var network_manager = NetworkManager
 		if network_manager:
 			network_manager.rpc_id(1, "receive_player_input", player_id, input_copy)
 
@@ -990,7 +991,7 @@ func sync_player_state() -> void:
 	if not multiplayer.is_server() or not is_inside_tree():
 		return
 
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
 
@@ -1014,7 +1015,7 @@ func update_player_state(state: Dictionary) -> void:
 		return
 
 	# Don't process if shutting down
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
 
@@ -1063,7 +1064,7 @@ func send_position_update_to_server() -> void:
 	if multiplayer.is_server():
 		validate_client_position_state(state)
 	else:
-		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+		var network_manager = NetworkManager
 		if network_manager:
 			network_manager.rpc_id(1, "receive_client_position_update", player_id, state)
 
@@ -1074,7 +1075,7 @@ func receive_client_position_update(peer_id: int, state: Dictionary) -> void:
 		return
 
 	# Don't process if shutting down
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
 
@@ -1265,7 +1266,7 @@ func start_interaction() -> void:
 		if multiplayer.is_server():
 			current_interactable.start_harvest(self)
 		else:
-			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+			var network_manager = NetworkManager
 			if network_manager:
 				network_manager.rpc_id(1, "request_start_harvest", player_id, current_interactable.get_path())
 	elif current_interactable.has_method("stop_interact"):
@@ -1278,7 +1279,7 @@ func start_interaction() -> void:
 		if multiplayer.is_server():
 			current_interactable.interact(self)
 		else:
-			var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+			var network_manager = NetworkManager
 			if network_manager:
 				network_manager.rpc_id(1, "request_interact", player_id, current_interactable.get_path())
 
@@ -1309,7 +1310,7 @@ func stop_interaction() -> void:
 		if current_interactable and current_interactable.has_method("cancel_harvest"):
 			current_interactable.cancel_harvest()
 	else:
-		var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+		var network_manager = NetworkManager
 		if network_manager:
 			network_manager.rpc_id(1, "request_cancel_harvest", player_id)
 

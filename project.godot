@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Veiled Deceit"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="uid://cnl3tdnrr8qwa"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
 [audio]
@@ -22,9 +22,10 @@ driver/mix_rate=48000
 [autoload]
 
 InventoryManager="*res://scripts/inventory_manager.gd"
-HarvestUIManager="*res://scripts/harvest_ui_manager.gd"
 VoiceManager="*res://scripts/voice_manager.gd"
 QuestManager="*res://scripts/quest_manager.gd"
+NetworkManager="*uid://sta3v20ef3k8"
+HarvestUIManager="*uid://cr7xtg02fwnx1"
 
 [display]
 

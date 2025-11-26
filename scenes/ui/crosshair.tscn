@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://crosshair_ui_scene"]
+[gd_scene load_steps=2 format=3 uid="uid://c3h13k6mrh6xk"]
 
-[ext_resource type="Script" path="res://scripts/crosshair.gd" id="1_crosshair"]
+[ext_resource type="Script" uid="uid://bwwvg2jo5pabk" path="res://scripts/crosshair.gd" id="1_crosshair"]
 
-[node name="Crosshair" type="Control"]
+[node name="Crosshair" type="Control" unique_id=2110548512]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_crosshair")
 
-[node name="CrosshairLines" type="Control" parent="."]
+[node name="CrosshairLines" type="Control" parent="." unique_id=726780715]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -23,7 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Top" type="ColorRect" parent="CrosshairLines"]
+[node name="Top" type="ColorRect" parent="CrosshairLines" unique_id=1650605517]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -39,7 +39,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0.8)
 
-[node name="Bottom" type="ColorRect" parent="CrosshairLines"]
+[node name="Bottom" type="ColorRect" parent="CrosshairLines" unique_id=638440475]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -55,7 +55,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0.8)
 
-[node name="Left" type="ColorRect" parent="CrosshairLines"]
+[node name="Left" type="ColorRect" parent="CrosshairLines" unique_id=824874686]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -71,7 +71,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0.8)
 
-[node name="Right" type="ColorRect" parent="CrosshairLines"]
+[node name="Right" type="ColorRect" parent="CrosshairLines" unique_id=1598376460]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -87,7 +87,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0.8)
 
-[node name="Center" type="ColorRect" parent="CrosshairLines"]
+[node name="Center" type="ColorRect" parent="CrosshairLines" unique_id=1658332235]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

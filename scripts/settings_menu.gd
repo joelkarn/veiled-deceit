@@ -23,40 +23,40 @@ var sfx_bus_index: int
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP  # Ensure we can receive mouse input
-	
+
 	# Get audio bus indices
 	master_bus_index = AudioServer.get_bus_index("Master")
 	music_bus_index = AudioServer.get_bus_index("Music")
 	sfx_bus_index = AudioServer.get_bus_index("SFX")
-	
+
 	# Create audio buses if they don't exist
 	if master_bus_index == -1:
 		master_bus_index = 0
-	
+
 	# Create Music and SFX buses if they don't exist
 	if music_bus_index == -1:
 		AudioServer.add_bus(1)
 		music_bus_index = AudioServer.bus_count - 1
 		AudioServer.set_bus_name(music_bus_index, "Music")
-	
+
 	if sfx_bus_index == -1:
 		AudioServer.add_bus(2)
 		sfx_bus_index = AudioServer.bus_count - 1
 		AudioServer.set_bus_name(sfx_bus_index, "SFX")
-	
+
 	# Populate option buttons
 	graphics_quality_option.add_item("Low")
 	graphics_quality_option.add_item("Medium")
 	graphics_quality_option.add_item("High")
 	graphics_quality_option.add_item("Ultra")
-	
+
 	vsync_option.add_item("Disabled")
 	vsync_option.add_item("Enabled")
 	vsync_option.add_item("Adaptive")
-	
+
 	# Initialize UI from saved settings
 	_load_settings()
-	
+
 	# Connect signals
 	master_volume_slider.value_changed.connect(_on_master_volume_changed)
 	music_volume_slider.value_changed.connect(_on_music_volume_changed)
@@ -65,15 +65,15 @@ func _ready() -> void:
 	fullscreen_checkbox.toggled.connect(_on_fullscreen_toggled)
 	vsync_option.item_selected.connect(_on_vsync_selected)
 	back_button.pressed.connect(_on_back_pressed)
-	
+
 	_update_volume_labels()
 
 func _input(event: InputEvent) -> void:
 	# Don't process input if shutting down
-	var network_manager = get_tree().current_scene.get_node_or_null("NetworkManager")
+	var network_manager = NetworkManager
 	if network_manager and network_manager.is_shutting_down:
 		return
-	
+
 	# Close settings menu with ESC
 	if visible and event.is_action_pressed("ui_cancel"):
 		_on_back_pressed()
@@ -98,7 +98,7 @@ func _load_settings() -> void:
 		graphics_quality_option.selected = QUALITY_MEDIUM
 		fullscreen_checkbox.button_pressed = false
 		vsync_option.selected = 1
-	
+
 	# Apply settings
 	_apply_volume_settings()
 	_apply_graphics_settings()

@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://lobby_ui_scene"]
+[gd_scene load_steps=2 format=3 uid="uid://cnl3tdnrr8qwa"]
 
-[ext_resource type="Script" path="res://scripts/lobby.gd" id="1_lobby"]
+[ext_resource type="Script" uid="uid://bilusxv5dclhe" path="res://scripts/lobby.gd" id="1_lobby"]
 
-[node name="Lobby" type="Control"]
+[node name="Lobby" type="Control" unique_id=469445950]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_lobby")
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="Panel" parent="." unique_id=905498150]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,51 +19,101 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+[node name="ConnectionView" type="Control" parent="Panel" unique_id=1761504287]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
+offset_left = -300.0
 offset_top = -100.0
-offset_right = 150.0
+offset_right = 300.0
 offset_bottom = 100.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Title" type="Label" parent="Panel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/ConnectionView" unique_id=407489555]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GameTitle" type="Label" parent="Panel/ConnectionView/VBoxContainer" unique_id=546245030]
 layout_mode = 2
-text = "Veiled Deceit - Multiplayer"
+theme_override_font_sizes/font_size = 50
+text = "UNCOVER"
 horizontal_alignment = 1
 
-[node name="Spacer1" type="Control" parent="Panel/VBoxContainer"]
+[node name="StatusLabel" type="Label" parent="Panel/ConnectionView/VBoxContainer" unique_id=1958394225]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 20)
 
-[node name="HostButton" type="Button" parent="Panel/VBoxContainer"]
+[node name="HostButton" type="Button" parent="Panel/ConnectionView/VBoxContainer" unique_id=1483581814]
 layout_mode = 2
 text = "Host Game"
 
-[node name="Spacer2" type="Control" parent="Panel/VBoxContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 10)
-
-[node name="HBoxContainer" type="HBoxContainer" parent="Panel/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/ConnectionView/VBoxContainer" unique_id=785389668]
 layout_mode = 2
 
-[node name="IPInput" type="LineEdit" parent="Panel/VBoxContainer/HBoxContainer"]
+[node name="IPInput" type="LineEdit" parent="Panel/ConnectionView/VBoxContainer/HBoxContainer" unique_id=536311977]
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "localhost"
 
-[node name="JoinButton" type="Button" parent="Panel/VBoxContainer/HBoxContainer"]
+[node name="JoinButton" type="Button" parent="Panel/ConnectionView/VBoxContainer/HBoxContainer" unique_id=2015600036]
 layout_mode = 2
 text = "Join Game"
 
-[node name="StatusLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="CharacterView" type="Control" parent="Panel" unique_id=1057060229]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -100.0
+offset_right = 300.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/CharacterView" unique_id=1426719311]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StatusLabel" type="Label" parent="Panel/CharacterView/VBoxContainer" unique_id=2099058958]
 layout_mode = 2
-text = "Not connected"
+text = "Select Your Character"
 horizontal_alignment = 1
 
+[node name="CharacterButtons" type="HBoxContainer" parent="Panel/CharacterView/VBoxContainer" unique_id=654250826]
+layout_mode = 2
+alignment = 1
+
+[node name="WitchButton" type="Button" parent="Panel/CharacterView/VBoxContainer/CharacterButtons" unique_id=1080699149]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HunterButton" type="Button" parent="Panel/CharacterView/VBoxContainer/CharacterButtons" unique_id=1743277631]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="KnightButton" type="Button" parent="Panel/CharacterView/VBoxContainer/CharacterButtons" unique_id=2076220924]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PlayerList" type="Label" parent="Panel/CharacterView/VBoxContainer" unique_id=1777325321]
+layout_mode = 2
+text = "Players:\\n"
+
+[node name="StartButton" type="Button" parent="Panel/CharacterView/VBoxContainer" unique_id=915763963]
+layout_mode = 2
+text = "Start Game"

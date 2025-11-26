@@ -15,15 +15,15 @@ func _ready() -> void:
 func show_sign(sign_data: SignData) -> void:
 	if not sign_data:
 		return
-	
+
 	current_sign_data = sign_data
-	
+
 	# Set the text content
 	if sign_title:
 		sign_title.text = sign_data.sign_title
 	if sign_text:
 		sign_text.text = sign_data.sign_text
-	
+
 	# Show the sign UI
 	show()
 	mouse_filter = Control.MOUSE_FILTER_STOP
