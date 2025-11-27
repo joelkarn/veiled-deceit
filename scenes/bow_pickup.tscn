@@ -1,11 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://bow_pickup_scene_01"]
+[gd_scene load_steps=3 format=3 uid="uid://bow_pickup_scene_01"]
 
 [ext_resource type="Script" uid="uid://6r7ywfvwa38c" path="res://scripts/item_pickup.gd" id="1_pickup"]
+[ext_resource type="PackedScene" path="res://assets/models/bow.glb" id="2_bow_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bow"]
-size = Vector3(0.3, 1.0, 0.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_bow"]
 size = Vector3(0.3, 1.0, 0.3)
 
 [node name="BowPickup" type="Area3D"]
@@ -17,8 +15,7 @@ item_id = "bow"
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("BoxShape3D_bow")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("BoxMesh_bow")
+[node name="bow_model" parent="." instance=ExtResource("2_bow_model")]
 
 [node name="RotationAnimation" type="AnimationPlayer" parent="."]
 
