@@ -106,7 +106,7 @@ func spawn_enemy() -> void:
 	# Random position within spawn radius
 	var random_offset = Vector3(
 		randf_range(-spawn_radius, spawn_radius),
-		0,
+		0.5, # Spawn slightly above ground
 		randf_range(-spawn_radius, spawn_radius)
 	)
 	var spawn_position = global_position + random_offset
@@ -153,7 +153,7 @@ func _on_enemy_died(enemy: Node) -> void:
 	# Remove from tracking
 	active_enemies.erase(enemy)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
 		return
 

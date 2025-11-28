@@ -30,8 +30,8 @@ var spawn_points = [
 
 signal character_selected(peer_id: int, character_name: String)
 signal player_list_updated
-signal game_start_requested
 signal host_started
+signal handshake_complete
 
 func _ready() -> void:
 	# Connect multiplayer signals
@@ -212,6 +212,15 @@ func scene_ready(peer_id: int) -> void:
 			if player_characters.has(id):
 				print("[Handshake] Spawning player for peer ", id)
 				spawn_player(id)
+		handshake_complete.emit()
+		# Notify all peers to hide loading screen
+		rpc("handshake_done")
+
+# RPC to notify all peers handshake is done
+@rpc("any_peer", "call_remote", "reliable")
+func handshake_done() -> void:
+	print("[Handshake] handshake_done RPC received, hiding loading screen.")
+	handshake_complete.emit()
 
 # Called when a peer connects (host receives this)
 func _on_peer_connected(peer_id: int) -> void:

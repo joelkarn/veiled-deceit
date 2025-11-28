@@ -11,7 +11,6 @@ var current_book_data: BookData = null
 
 func _ready() -> void:
 	hide()
-	var current_scene = get_tree().current_scene
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func show_book(book_data: BookData) -> void:

@@ -11,7 +11,7 @@ func _init() -> void:
 	is_equippable = true
 	max_stack = 1  ## Books don't stack
 
-func use_item(player: Node) -> bool:
+func use_item(_player: Node) -> bool:
 	# Equipping the book - doesn't consume it
 	print("Book equipped: ", item_name)
 	return false  # Don't consume the item

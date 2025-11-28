@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://arrow_scene"]
+[gd_scene load_steps=3 format=3 uid="uid://buwnkoqdeaohl"]
 
 [ext_resource type="Script" path="res://scripts/arrow.gd" id="1_arrow"]
 
@@ -7,9 +7,9 @@ top_radius = 0.02
 bottom_radius = 0.02
 height = 0.5
 
-[node name="Arrow" type="Node3D"]
+[node name="Arrow" type="Node3D" unique_id=1587158425]
 script = ExtResource("1_arrow")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=2031586687]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0)
 mesh = SubResource("CylinderMesh_arrow")

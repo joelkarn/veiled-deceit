@@ -19,6 +19,10 @@ var is_aggroed: bool = false  # Only aggro when hit
 var aggroed_player: CharacterBody3D = null  # Track which player we're aggroed to
 const GRAVITY: float = -45.0
 
+# Debug timer for periodic logging
+var debug_timer: float = 0.0
+const DEBUG_INTERVAL: float = 5.0
+
 func _ready():
 	health = max_health
 
@@ -85,6 +89,10 @@ func _physics_process(delta: float) -> void:
 	if target_player and is_instance_valid(target_player):
 		var distance_to_player = global_position.distance_to(target_player.global_position)
 
+		# Always update navigation target to player
+		if nav_agent:
+			nav_agent.target_position = target_player.global_position
+
 		# Check if in attack range
 		if distance_to_player <= attack_range:
 			# Stop moving and attack
@@ -93,29 +101,28 @@ func _physics_process(delta: float) -> void:
 			attempt_attack()
 		else:
 			# Move towards player using navigation
-			if nav_agent:
-				nav_agent.target_position = target_player.global_position
+			if nav_agent.is_navigation_finished():
+				velocity.x = 0.0
+				velocity.z = 0.0
+			else:
+				var next_position = nav_agent.get_next_path_position()
+				var direction = (next_position - global_position).normalized()
+				direction.y = 0.0  # Keep movement horizontal
 
-				if nav_agent.is_navigation_finished():
-					velocity.x = 0.0
-					velocity.z = 0.0
-				else:
-					var next_position = nav_agent.get_next_path_position()
-					var direction = (next_position - global_position).normalized()
-					direction.y = 0.0  # Keep movement horizontal
+				velocity.x = direction.x * move_speed
+				velocity.z = direction.z * move_speed
 
-					velocity.x = direction.x * move_speed
-					velocity.z = direction.z * move_speed
-
-					# Face the direction of movement
-					if direction.length() > 0.01:
-						look_at(global_position + direction, Vector3.UP)
+				# Face the direction of movement
+				if direction.length() > 0.01:
+					look_at(global_position + direction, Vector3.UP)
 	else:
 		# No target, slow down
 		velocity.x = 0.0
 		velocity.z = 0.0
 
 	move_and_slide()
+
+	# Logging removed for production. Movement and aggro logic simplified.
 
 	# Sync position to clients if in multiplayer
 	if multiplayer.multiplayer_peer != null and multiplayer.is_server():
@@ -132,6 +139,9 @@ func aggro_to_player(attacker_id: int) -> void:
 
 			if player_pid == attacker_id:
 				aggroed_player = player
+				# Immediately update navigation target to player position
+				if nav_agent and aggroed_player:
+					nav_agent.target_position = aggroed_player.global_position
 				# Sync aggro to all clients
 				if multiplayer.multiplayer_peer != null:
 					rpc("sync_aggro", attacker_id)
@@ -242,12 +252,15 @@ func perform_attack() -> void:
 				print("Enemy hit player for ", attack_damage, " damage!")
 
 func take_damage(amount: float, attacker_id: int = 0) -> void:
+	print("ENEMY: take_damage called! Amount:", amount, "Attacker ID:", attacker_id, "Current health:", health)
 	# Only host processes damage
 	# In single-player (no multiplayer peer), act as server
 	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
+		print("ENEMY: Not server, ignoring damage.")
 		return
 
 	health -= amount
+	print("ENEMY: Health after damage:", health)
 	health = max(0, health)  # Clamp to 0
 
 	# Track the last attacker and aggro to them
@@ -255,7 +268,8 @@ func take_damage(amount: float, attacker_id: int = 0) -> void:
 		last_attacker_id = attacker_id
 		# Aggro to the attacker
 		if not is_aggroed:
-			aggro_to_player(attacker_id)	# Sync health to all clients
+			aggro_to_player(attacker_id)
+	# Sync health to all clients
 	sync_health()
 
 	# Visual feedback - flash red
@@ -263,6 +277,7 @@ func take_damage(amount: float, attacker_id: int = 0) -> void:
 		flash_damage()
 
 	if health <= 0:
+		print("ENEMY: Health <= 0, dying!")
 		die()
 
 func sync_health() -> void:

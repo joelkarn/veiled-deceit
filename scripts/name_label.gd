@@ -78,11 +78,11 @@ func _get_ui_layer() -> Control:
 		for child in health_bars_layer.get_children():
 			if child is Control and child.name == "UILayer":
 				return child
-		var ui_control = Control.new()
-		ui_control.name = "UILayer"
-		ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-		health_bars_layer.add_child(ui_control)
-		return ui_control
+		var ui_control_health_bars_layer = Control.new()
+		ui_control_health_bars_layer.name = "UILayer"
+		ui_control_health_bars_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		health_bars_layer.add_child(ui_control_health_bars_layer)
+		return ui_control_health_bars_layer
 
 	# Fallback: look for existing CanvasLayer
 	var canvas_layer = main_scene.find_child("UI", false, false)
@@ -96,11 +96,11 @@ func _get_ui_layer() -> Control:
 		for child in canvas_layer.get_children():
 			if child is Control and child.name == "UILayer":
 				return child
-		var ui_control = Control.new()
-		ui_control.name = "UILayer"
-		ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-		canvas_layer.add_child(ui_control)
-		return ui_control
+		var ui_control_canvas_layer = Control.new()
+		ui_control_canvas_layer.name = "UILayer"
+		ui_control_canvas_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		canvas_layer.add_child(ui_control_canvas_layer)
+		return ui_control_canvas_layer
 
 	# Create new CanvasLayer
 	var new_canvas_layer = CanvasLayer.new()
@@ -108,11 +108,11 @@ func _get_ui_layer() -> Control:
 	new_canvas_layer.layer = 1
 	main_scene.add_child(new_canvas_layer)
 
-	var ui_control = Control.new()
-	ui_control.name = "UILayer"
-	ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-	new_canvas_layer.add_child(ui_control)
-	return ui_control
+	var ui_control_new_canvas_layer = Control.new()
+	ui_control_new_canvas_layer.name = "UILayer"
+	ui_control_new_canvas_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	new_canvas_layer.add_child(ui_control_new_canvas_layer)
+	return ui_control_new_canvas_layer
 
 func _update_2d_position() -> void:
 	if not name_label_ui or not is_instance_valid(name_label_ui):

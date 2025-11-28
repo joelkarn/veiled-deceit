@@ -20,6 +20,6 @@ enum ItemType {
 @export var is_equippable: bool = false  ## Can this item be equipped?
 
 ## Virtual method for item use - override in subclasses
-func use_item(player: Node) -> bool:
+func use_item(_player: Node) -> bool:
 	push_warning("use_item not implemented for " + item_name)
 	return false

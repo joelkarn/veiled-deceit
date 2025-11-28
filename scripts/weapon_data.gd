@@ -5,7 +5,7 @@ class_name WeaponData
 
 @export var damage: float = 10.0  ## Base damage
 @export var attack_speed: float = 1.0  ## Attacks per second
-@export var range: float = 2.0  ## Attack range in meters
+@export var attack_range: float = 2.0  ## Attack range in meters
 @export var weapon_model: PackedScene = null  ## 3D model to display when equipped
 
 func _init() -> void:
@@ -13,7 +13,7 @@ func _init() -> void:
 	is_equippable = true
 	max_stack = 1  ## Weapons don't stack
 
-func use_item(player: Node) -> bool:
+func use_item(_player: Node) -> bool:
 	# Equip weapon logic will be handled by player/weapon manager
 	print("Equipped weapon: ", item_name)
 	return true

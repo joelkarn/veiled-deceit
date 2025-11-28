@@ -138,11 +138,11 @@ func _get_ui_layer() -> Control:
 			if child is Control and child.name == "UILayer":
 				return child
 		# No Control found, create one
-		var ui_control = Control.new()
-		ui_control.name = "UILayer"
-		ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-		health_bars_layer.add_child(ui_control)
-		return ui_control
+		var ui_control_health_bars_layer = Control.new()
+		ui_control_health_bars_layer.name = "UILayer"
+		ui_control_health_bars_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		health_bars_layer.add_child(ui_control_health_bars_layer)
+		return ui_control_health_bars_layer
 
 	# Look for existing CanvasLayer in the scene (fallback)
 	var canvas_layer = main_scene.find_child("UI", false, false)
@@ -159,11 +159,11 @@ func _get_ui_layer() -> Control:
 			if child is Control and child.name == "UILayer":
 				return child
 		# No Control found, create one
-		var ui_control = Control.new()
-		ui_control.name = "UILayer"
-		ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-		canvas_layer.add_child(ui_control)
-		return ui_control
+		var ui_control_canvas_layer = Control.new()
+		ui_control_canvas_layer.name = "UILayer"
+		ui_control_canvas_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		canvas_layer.add_child(ui_control_canvas_layer)
+		return ui_control_canvas_layer
 
 	# No CanvasLayer found, create one at root with layer 1 for health bars
 	var new_canvas_layer = CanvasLayer.new()
@@ -171,11 +171,11 @@ func _get_ui_layer() -> Control:
 	new_canvas_layer.layer = 1
 	main_scene.add_child(new_canvas_layer)
 
-	var ui_control = Control.new()
-	ui_control.name = "UILayer"
-	ui_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-	new_canvas_layer.add_child(ui_control)
-	return ui_control
+	var ui_control_new_canvas_layer = Control.new()
+	ui_control_new_canvas_layer.name = "UILayer"
+	ui_control_new_canvas_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	new_canvas_layer.add_child(ui_control_new_canvas_layer)
+	return ui_control_new_canvas_layer
 
 func _update_2d_position() -> void:
 	if not health_bar_ui or not is_instance_valid(health_bar_ui):
@@ -213,26 +213,26 @@ func _update_2d_position() -> void:
 		return
 
 	# Calculate scale based on distance
-	var scale: float = 1.0
+	var bar_scale: float = 1.0
 	if bar_type != BarType.PLAYER:
 		if distance <= min_distance:
-			scale = 1.0
+			bar_scale = 1.0
 		else:
 			var distance_range = max_distance - min_distance
 			if distance_range > 0:
 				var normalized_distance = (distance - min_distance) / distance_range
-				scale = lerp(1.0, 0.2, normalized_distance)
-				scale = clamp(scale, 0.2, 1.0)
+				bar_scale = lerp(1.0, 0.2, normalized_distance)
+				bar_scale = clamp(bar_scale, 0.2, 1.0)
 			else:
-				scale = 1.0
+				bar_scale = 1.0
 
-	if scale != current_scale:
-		current_scale = scale
-		_update_bar_size(scale)
+	if bar_scale != current_scale:
+		current_scale = bar_scale
+		_update_bar_size(bar_scale)
 
 	var screen_pos = camera.unproject_position(world_pos)
-	var scaled_width = bar_width * scale
-	var scaled_height = bar_height * scale
+	var scaled_width = bar_width * bar_scale
+	var scaled_height = bar_height * bar_scale
 
 	var viewport_size = get_viewport().get_visible_rect().size
 	if screen_pos.x < -scaled_width or screen_pos.x > viewport_size.x + scaled_width or screen_pos.y < -scaled_height or screen_pos.y > viewport_size.y + scaled_height:
@@ -284,12 +284,12 @@ func _sort_health_bars_by_distance(parent_node: Control) -> void:
 	for i in range(health_bar_nodes.size()):
 		parent_node.move_child(health_bar_nodes[i], health_bar_nodes.size() - 1 - i)
 
-func _update_bar_size(scale: float) -> void:
+func _update_bar_size(bar_scale: float) -> void:
 	if not health_bar_ui:
 		return
 
-	var scaled_width = bar_width * scale
-	var scaled_height = bar_height * scale
+	var scaled_width = bar_width * bar_scale
+	var scaled_height = bar_height * bar_scale
 
 	# Update main UI control size
 	health_bar_ui.size = Vector2(scaled_width, scaled_height)
@@ -305,8 +305,8 @@ func _update_bar_size(scale: float) -> void:
 
 	# Update borders - scale border thickness proportionally, but ensure minimum of 1 pixel
 	# Original borders were 1 pixel, so we scale that but keep it visible
-	var border_thickness_h = max(1, ceil(scale))
-	var border_thickness_v = max(1, ceil(scale))
+	var border_thickness_h = max(1, ceil(bar_scale))
+	var border_thickness_v = max(1, ceil(bar_scale))
 
 	if border_top:
 		border_top.size = Vector2(scaled_width, border_thickness_v)

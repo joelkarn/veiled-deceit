@@ -415,7 +415,7 @@ func handle_falling(direction: Vector3, speed_multiplier: float) -> void:
 # ----------------------------
 # Soft Collision (Entity-to-Entity)
 # ----------------------------
-func _apply_soft_collision(delta: float) -> void:
+func _apply_soft_collision(_delta: float) -> void:
 	# Only apply to local players
 	if not is_local_player:
 		return
@@ -607,87 +607,41 @@ func _perform_bow_attack() -> void:
 	if animation_player and animation_player.has_animation("attack"):
 		animation_player.play("attack")
 
-	# Perform raycast from camera center to find what we're aiming at
+	# Single raycast from camera center in aim direction
 	if camera:
 		var space_state = get_world_3d().direct_space_state
 		var camera_from = camera.global_position
 		var camera_to = camera_from + (-camera.global_transform.basis.z * BOW_RAYCAST_RANGE)
 
-		# First raycast: from camera through crosshair to find target
 		var camera_query = PhysicsRayQueryParameters3D.create(camera_from, camera_to)
-		camera_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities) - hit everything
+		camera_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities)
 		camera_query.exclude = [self]  # Don't hit ourselves
 
 		var camera_result = space_state.intersect_ray(camera_query)
 
+		var hit_success = false
+		var hit_position = camera_to
 		if camera_result and camera_result.has("collider"):
-			var target_body = camera_result["collider"]
-			var camera_hit_position = camera_result["position"]
+			hit_success = true
+			hit_position = camera_result["position"]
 
-			# Second raycast: from player to the exact hit position - check line of sight
-			var player_from = global_position + Vector3(0, 1.5, 0)  # Shoot from chest height
-			var player_to = camera_hit_position  # Aim for exact position camera hit
+		# Draw debug line (local only)
+		if is_local_player:
+			_draw_debug_line(camera_from, hit_position, hit_success)
 
-			var player_query = PhysicsRayQueryParameters3D.create(player_from, player_to)
-			player_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities)
-			player_query.exclude = [self]  # Don't hit ourselves
-
-			var player_result = space_state.intersect_ray(player_query)
-
-			# Determine what we actually hit from player perspective
-			var actual_hit_body = null
-			var actual_hit_position = player_to
-			var hit_intended_target = false
-
-			if player_result.has("collider"):
-				actual_hit_body = player_result["collider"]
-				actual_hit_position = player_result["position"]
-				hit_intended_target = (actual_hit_body == target_body)
-
-			# Draw debug line (local only)
-			if is_local_player:
-				_draw_debug_line(player_from, actual_hit_position, hit_intended_target)
-
-			# Spawn arrow on whatever we hit (sync across network)
-			if actual_hit_body:
-				var body_path = actual_hit_body.get_path()
-
-				# Spawn arrow locally
-				_spawn_arrow(actual_hit_position, (player_to - player_from).normalized(), actual_hit_body)
-
-				# Sync arrow spawn to all other clients
-				if multiplayer.multiplayer_peer != null:
-					rpc("_sync_arrow_spawn", actual_hit_position, (player_to - player_from).normalized(), body_path)
-
-				# Deal damage only if it's a damageable target
-				if actual_hit_body.has_method("take_damage"):
-					if multiplayer.is_server():
-						# Host processes damage directly
-						actual_hit_body.take_damage(BOW_DAMAGE, player_id)
-					else:
-						# Client sends damage request to host
-						var network_manager = NetworkManager
-						if network_manager:
-							var body_name = ""
-							var body_peer_id = 0
-
-							# Check if it's a player
-							if actual_hit_body.get("player_id") != null:
-								body_peer_id = actual_hit_body.player_id
-								body_name = "Player_" + str(body_peer_id)
-							else:
-								# It's an enemy or other object
-								body_name = actual_hit_body.name
-
-							network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, BOW_DAMAGE)
-
-					print("Bow hit and damaged: ", actual_hit_body.name)
-				else:
-					print("Bow hit: ", actual_hit_body.name, " (no damage)")
+		var arrow_start = global_position + Vector3(0, 1.5, 0) # chest height
+		var arrow_direction = (hit_position - arrow_start).normalized()
+		var hit_body = null
+		if camera_result and camera_result.has("collider"):
+			hit_body = camera_result["collider"]
+		_spawn_arrow(arrow_start, arrow_direction, hit_position, hit_body)
+		if multiplayer.multiplayer_peer != null:
+			var body_path = null
+			if hit_body:
+				body_path = hit_body.get_path()
+			rpc("_sync_arrow_spawn", arrow_start, arrow_direction, hit_position, body_path)
 
 	auto_attack_active = false
-
-	# Cooldown timer before next attack allowed
 	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
 	auto_attack_on_cooldown = false
 
@@ -844,38 +798,29 @@ func _draw_debug_line(start: Vector3, end: Vector3, hit_success: bool) -> void:
 		debug_line_mesh.clear_surfaces()
 
 ## Spawn an arrow at the hit position and attach it to the hit object
-func _spawn_arrow(hit_position: Vector3, direction: Vector3, hit_object: Node) -> void:
+func _spawn_arrow(arrow_start: Vector3, direction: Vector3, arrow_target_position: Vector3, target_body: Node3D) -> void:
 	if not arrow_scene:
 		return
 
 	var arrow = arrow_scene.instantiate()
-
-	# Add arrow to the scene
 	get_tree().current_scene.add_child(arrow)
 
-	# Slightly embed the arrow into the surface (move back along direction)
-	arrow.global_position = hit_position - direction * 0.25
-
-	# Orient arrow to point in the direction of travel
-	# Create a basis that points forward in the direction vector
+	arrow.global_position = arrow_start
 	var arrow_basis = Basis.looking_at(direction, Vector3.UP)
 	arrow.global_transform.basis = arrow_basis
 
-	# Parent arrow to the hit object so it moves with it
-	if hit_object and hit_object is Node3D:
-		# Reparent to hit object
-		var local_transform = arrow.global_transform
-		arrow.get_parent().remove_child(arrow)
-		hit_object.add_child(arrow)
-		arrow.global_transform = local_transform
+	if arrow.has_method("set_target_position"):
+		arrow.set_target_position(arrow_target_position, target_body)
+	if arrow.has_method("set_arrow_shooter"):
+		arrow.set_arrow_shooter(self)
 
 ## RPC to sync arrow spawns across all clients
 @rpc("any_peer", "call_remote", "reliable")
-func _sync_arrow_spawn(hit_position: Vector3, direction: Vector3, body_path: NodePath) -> void:
-	# Get the hit object from path
-	var hit_object = get_node_or_null(body_path)
-	if hit_object:
-		_spawn_arrow(hit_position, direction, hit_object)
+func _sync_arrow_spawn(arrow_start: Vector3, direction: Vector3, arrow_target_position: Vector3, body_path: NodePath) -> void:
+	var target_body = null
+	if body_path != null:
+		target_body = get_node_or_null(body_path)
+	_spawn_arrow(arrow_start, direction, arrow_target_position, target_body)
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open
@@ -901,7 +846,7 @@ func handle_mouse_motion(event) -> void:
 	_pitch = clamp(_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
 	camera_mount.rotation.x = _pitch
 
-func take_damage(amount: float, attacker_id: int = 0) -> void:
+func take_damage(amount: float, _attacker_id: int = 0) -> void:
 	if not multiplayer.is_server():
 		return
 
@@ -995,6 +940,10 @@ func sync_player_state() -> void:
 	if network_manager and network_manager.is_shutting_down:
 		return
 
+	var animation_to_play = "idle"
+	if animation_player:
+		animation_to_play = animation_player.current_animation
+
 	var state = {
 		"position": position,
 		"rotation_y": rotation.y,
@@ -1002,7 +951,7 @@ func sync_player_state() -> void:
 		"health": health,
 		"velocity": velocity,
 		"is_jumping": is_jumping,
-		"animation": animation_player.current_animation if animation_player else "idle"
+		"animation": animation_to_play
 	}
 
 	rpc("update_player_state", state)
@@ -1102,7 +1051,7 @@ func validate_client_position_state(state: Dictionary) -> void:
 	last_validation_time = Time.get_ticks_msec() / 1000.0
 
 # Snaps player back to server position if distance is too large
-func _apply_server_reconciliation(delta: float) -> void:
+func _apply_server_reconciliation(_delta: float) -> void:
 	if last_server_position == Vector3.ZERO:
 		return
 
@@ -1117,7 +1066,7 @@ func _apply_server_reconciliation(delta: float) -> void:
 		position = last_server_position
 
 # Update visuals and animation for remote players on host
-func _update_remote_player_visuals_and_animation(delta: float) -> void:
+func _update_remote_player_visuals_and_animation(_delta: float) -> void:
 	var horizontal_velocity = Vector3(velocity.x, 0, velocity.z)
 	var movement_magnitude = horizontal_velocity.length()
 

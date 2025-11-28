@@ -15,5 +15,5 @@ func _init() -> void:
 
 	damage = 12.0
 	attack_speed = 0.8  # Slower than sword (1.25s per attack = 0.8 attacks/sec)
-	range = 20.0  # Used for UI display
+	attack_range = 20.0  # Used for UI display
 	max_raycast_range = 20.0  # Actual raycast range

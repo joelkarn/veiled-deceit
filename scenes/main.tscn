@@ -1,6 +1,7 @@
-[gd_scene load_steps=30 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=31 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
+[ext_resource type="Script" uid="uid://krhubcp5rbah" path="res://scripts/main.gd" id="1_pm3ni"]
 [ext_resource type="Texture2D" uid="uid://cjcgjp0geraqd" path="res://assets/textures/grids/Orange/texture_09.png" id="2_c35nn"]
 [ext_resource type="Texture2D" uid="uid://gax208yoighg" path="res://assets/textures/grids/Purple/texture_09.png" id="3_3vadj"]
 [ext_resource type="Texture2D" uid="uid://bm5h5tfy8aiyu" path="res://assets/textures/grids/Green/texture_09.png" id="4_o6m22"]
@@ -8,9 +9,9 @@
 [ext_resource type="PackedScene" uid="uid://cgj0sdw2q4hkr" path="res://scenes/pause_menu.tscn" id="8_pause"]
 [ext_resource type="PackedScene" uid="uid://bu5aon18jysvy" path="res://scenes/ui/toolbar.tscn" id="11_toolbar"]
 [ext_resource type="PackedScene" uid="uid://c8jmhp6qb5ywn" path="res://scenes/berry_bush.tscn" id="12_berry_bush"]
-[ext_resource type="Script" uid="uid://be6sadnourii1" path="res://scripts/navigation_baker.gd" id="12_navigation_baker"]
 [ext_resource type="PackedScene" uid="uid://b3k2xj8vwxmt" path="res://scenes/ui/interaction_prompt.tscn" id="13_interaction_prompt"]
 [ext_resource type="PackedScene" uid="uid://ci7coj77n5ph7" path="res://scenes/axe_pickup.tscn" id="14_axe_pickup"]
+[ext_resource type="PackedScene" uid="uid://bfwx4qmvrda2b" path="res://scenes/ui/loading_ui.tscn" id="14_jscy8"]
 [ext_resource type="PackedScene" path="res://scenes/chest.tscn" id="15_chest"]
 [ext_resource type="PackedScene" uid="uid://ji1l6eoqhvra" path="res://scenes/ui/chest_ui.tscn" id="16_chest_ui"]
 [ext_resource type="PackedScene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
@@ -40,7 +41,8 @@ fog_light_color = Color(1, 1, 1, 1)
 fog_density = 0.001
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_jscy8"]
-geometry_parsed_geometry_type = 1
+vertices = PackedVector3Array(-499.5, 0.5, 9.25, -8.25, 0.5, 9.25, -5.25, 0.5, 7, -5.25, 0.5, -499.5, -499.5, 0.5, -499.5, -1, 0.5, 12, -0.25, 0.5, 11.25, -0.5, 0.5, 9, -3.75, 0.5, 8, 2.75, 0.5, 7.25, 2.75, 0.5, -499.5, 3.25, 0.5, 7.25, 4, 0.5, 8.5, 499.5, 0.5, 8.5, 499.5, 0.5, -499.5, -4.25, 3.5, 13.25, -3.5, 3.5, 13.25, -2.25, 3.5, 12.25, -5, 3.5, 8.25, -7, 3.5, 9.5, 0.25, 0.5, 12, -2, 0.5, 13.5, 4, 0.5, 9.25, 3, 0.5, 9.75, 3, 0.5, 11.5, -4, 0.5, 499.5, 499.5, 0.5, 499.5, -4, 0.5, 14.5, -4, 0.5, 13, -2.75, 0.5, 12.25, -5, 0.5, 8.75, -6.5, 0.5, 9.5, -5, 0.5, 14.25, -8, 0.5, 10.25, -499.5, 0.5, 499.5, 0.5, 2.5, 9.5, 0.75, 2.5, 10.75, 2, 2.5, 10.5, 1.75, 2.5, 9.25)
+polygons = [PackedInt32Array(1, 0, 2), PackedInt32Array(2, 0, 3), PackedInt32Array(3, 0, 4), PackedInt32Array(6, 5, 7), PackedInt32Array(7, 5, 8), PackedInt32Array(8, 2, 7), PackedInt32Array(7, 2, 9), PackedInt32Array(9, 2, 3), PackedInt32Array(9, 3, 10), PackedInt32Array(12, 11, 13), PackedInt32Array(13, 11, 10), PackedInt32Array(13, 10, 14), PackedInt32Array(11, 9, 10), PackedInt32Array(16, 15, 17), PackedInt32Array(17, 15, 18), PackedInt32Array(18, 15, 19), PackedInt32Array(6, 20, 5), PackedInt32Array(5, 20, 21), PackedInt32Array(24, 23, 22), PackedInt32Array(24, 22, 25), PackedInt32Array(25, 22, 13), PackedInt32Array(25, 13, 26), PackedInt32Array(20, 24, 21), PackedInt32Array(21, 24, 27), PackedInt32Array(27, 24, 25), PackedInt32Array(22, 12, 13), PackedInt32Array(29, 28, 30), PackedInt32Array(30, 28, 31), PackedInt32Array(32, 27, 25), PackedInt32Array(33, 32, 25), PackedInt32Array(33, 25, 1), PackedInt32Array(1, 25, 0), PackedInt32Array(0, 25, 34), PackedInt32Array(38, 37, 35), PackedInt32Array(35, 37, 36)]
 agent_height = 2.0
 agent_max_climb = 0.5
 
@@ -60,6 +62,7 @@ albedo_texture = ExtResource("4_o6m22")
 uv1_triplanar = true
 
 [node name="world" type="Node3D" unique_id=238736076]
+script = ExtResource("1_pm3ni")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=635195609]
 transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
@@ -72,7 +75,6 @@ environment = SubResource("Environment_l67pa")
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="map" unique_id=648618663]
 navigation_mesh = SubResource("NavigationMesh_jscy8")
-script = ExtResource("12_navigation_baker")
 
 [node name="floor" type="CSGBox3D" parent="map/NavigationRegion3D" unique_id=16328630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -119,7 +121,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
 
 [node name="EnemySpawner" parent="map" unique_id=235749264 instance=ExtResource("17_enemy_spawner")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.3654175, 0, -4.9104595)
 
 [node name="UIManager" type="Node" parent="." unique_id=2032296841]
 script = ExtResource("7_ui")
@@ -127,6 +129,10 @@ script = ExtResource("7_ui")
 [node name="UILayers" type="Node" parent="." unique_id=778014408]
 
 [node name="HealthBarsLayer" type="CanvasLayer" parent="UILayers" unique_id=2117027376]
+
+[node name="LoadingLayer" type="CanvasLayer" parent="UILayers" unique_id=1881090694]
+
+[node name="LoadingUI" parent="UILayers/LoadingLayer" unique_id=1986452120 instance=ExtResource("14_jscy8")]
 
 [node name="MenuLayer" type="CanvasLayer" parent="UILayers" unique_id=1956920444]
 layer = 10

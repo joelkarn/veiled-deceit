@@ -12,4 +12,4 @@ func _init() -> void:
 
 	damage = 20.0
 	attack_speed = 0.67  # Slower than sword (1.5s per attack = 0.67 attacks/sec)
-	range = 2.5
+	attack_range = 2.5

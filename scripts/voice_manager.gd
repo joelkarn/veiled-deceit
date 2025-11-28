@@ -126,7 +126,6 @@ func _process(delta: float) -> void:
 
 	# Check push-to-talk
 	if push_to_talk_enabled:
-		var was_talking = is_talking
 		is_talking = Input.is_action_pressed("voice_chat")
 
 		# Update talk indicator whenever push-to-talk state changes
