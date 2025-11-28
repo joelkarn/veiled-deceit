@@ -619,27 +619,37 @@ func _perform_bow_attack() -> void:
 
 		var camera_result = space_state.intersect_ray(camera_query)
 
-		var hit_success = false
 		var hit_position = camera_to
 		if camera_result and camera_result.has("collider"):
-			hit_success = true
 			hit_position = camera_result["position"]
-
-		# Draw debug line (local only)
-		if is_local_player:
-			_draw_debug_line(camera_from, hit_position, hit_success)
 
 		var arrow_start = global_position + Vector3(0, 1.5, 0) # chest height
 		var arrow_direction = (hit_position - arrow_start).normalized()
+		var arrow_end = arrow_start + arrow_direction * BOW_RAYCAST_RANGE
+
+		# Second raycast from arrow start to hit position to determine actual hit
+		var arrow_query = PhysicsRayQueryParameters3D.create(arrow_start, arrow_end)
+		arrow_query.collision_mask = 3  # Layer 1 (environment) + Layer 2 (entities)
+		arrow_query.exclude = [self]  # Don't hit ourselves
+
+		var arrow_result = space_state.intersect_ray(arrow_query)
+		var hit_success = false
+		if arrow_result and arrow_result.has("collider"):
+			hit_position = arrow_result["position"]
+			hit_success = true
+
 		var hit_body = null
-		if camera_result and camera_result.has("collider"):
-			hit_body = camera_result["collider"]
-		_spawn_arrow(arrow_start, arrow_direction, hit_position, hit_body)
+		if arrow_result and arrow_result.has("collider"):
+			hit_body = arrow_result["collider"]
+		# Draw debug line (local only)
+		if is_local_player:
+			_draw_debug_line(arrow_start, hit_position, hit_success)
+		_spawn_arrow(arrow_start, arrow_direction, hit_position, hit_body, hit_success)
 		if multiplayer.multiplayer_peer != null:
 			var body_path = null
 			if hit_body:
 				body_path = hit_body.get_path()
-			rpc("_sync_arrow_spawn", arrow_start, arrow_direction, hit_position, body_path)
+			rpc("_sync_arrow_spawn", arrow_start, arrow_direction, hit_position, body_path, hit_success)
 
 	auto_attack_active = false
 	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
@@ -798,7 +808,7 @@ func _draw_debug_line(start: Vector3, end: Vector3, hit_success: bool) -> void:
 		debug_line_mesh.clear_surfaces()
 
 ## Spawn an arrow at the hit position and attach it to the hit object
-func _spawn_arrow(arrow_start: Vector3, direction: Vector3, arrow_target_position: Vector3, target_body: Node3D) -> void:
+func _spawn_arrow(arrow_start: Vector3, direction: Vector3, arrow_target_position: Vector3, target_body: Node3D, hit_success: bool) -> void:
 	if not arrow_scene:
 		return
 
@@ -806,6 +816,7 @@ func _spawn_arrow(arrow_start: Vector3, direction: Vector3, arrow_target_positio
 	get_tree().current_scene.add_child(arrow)
 
 	arrow.global_position = arrow_start
+	arrow.hit_success = hit_success
 	var arrow_basis = Basis.looking_at(direction, Vector3.UP)
 	arrow.global_transform.basis = arrow_basis
 
@@ -816,11 +827,11 @@ func _spawn_arrow(arrow_start: Vector3, direction: Vector3, arrow_target_positio
 
 ## RPC to sync arrow spawns across all clients
 @rpc("any_peer", "call_remote", "reliable")
-func _sync_arrow_spawn(arrow_start: Vector3, direction: Vector3, arrow_target_position: Vector3, body_path: NodePath) -> void:
+func _sync_arrow_spawn(arrow_start: Vector3, direction: Vector3, arrow_target_position: Vector3, body_path: NodePath, hit_success: bool) -> void:
 	var target_body = null
 	if body_path != null:
 		target_body = get_node_or_null(body_path)
-	_spawn_arrow(arrow_start, direction, arrow_target_position, target_body)
+	_spawn_arrow(arrow_start, direction, arrow_target_position, target_body, hit_success)
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open

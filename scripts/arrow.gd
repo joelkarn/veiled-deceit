@@ -10,6 +10,7 @@ var target_body: Node3D = null
 var speed: float = 100.0 # Arrow visual speed
 var lifetime: float = 10.0
 var arrow_shooter: Node3D
+var hit_success: bool = false
 
 func set_target_position(pos: Vector3, body: Node3D) -> void:
 	target_position = pos
@@ -40,6 +41,9 @@ func _physics_process(delta: float) -> void:
 			global_position = target_position
 			set_physics_process(false)
 			# Stick arrow to the hit body visually
+			if not hit_success:
+				queue_free()
+				return
 			if target_body:
 				var arrow_global = global_transform
 				var parent = get_parent()
