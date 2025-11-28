@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=33 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
 [ext_resource type="Script" uid="uid://krhubcp5rbah" path="res://scripts/main.gd" id="1_pm3ni"]
@@ -10,16 +10,18 @@
 [ext_resource type="PackedScene" uid="uid://bu5aon18jysvy" path="res://scenes/ui/toolbar.tscn" id="11_toolbar"]
 [ext_resource type="PackedScene" uid="uid://c8jmhp6qb5ywn" path="res://scenes/berry_bush.tscn" id="12_berry_bush"]
 [ext_resource type="PackedScene" uid="uid://b3k2xj8vwxmt" path="res://scenes/ui/interaction_prompt.tscn" id="13_interaction_prompt"]
-[ext_resource type="PackedScene" uid="uid://ci7coj77n5ph7" path="res://scenes/axe_pickup.tscn" id="14_axe_pickup"]
+[ext_resource type="PackedScene" uid="uid://ci7coj77n5ph7" path="res://scenes/hammer_pickup.tscn" id="14_axe_pickup"]
 [ext_resource type="PackedScene" uid="uid://bfwx4qmvrda2b" path="res://scenes/ui/loading_ui.tscn" id="14_jscy8"]
+[ext_resource type="PackedScene" uid="uid://cpvtmrn4kjy6u" path="res://scenes/sword_pickup.tscn" id="14_y6deb"]
 [ext_resource type="PackedScene" path="res://scenes/chest.tscn" id="15_chest"]
 [ext_resource type="PackedScene" uid="uid://ji1l6eoqhvra" path="res://scenes/ui/chest_ui.tscn" id="16_chest_ui"]
 [ext_resource type="PackedScene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
-[ext_resource type="PackedScene" path="res://scenes/bow_pickup.tscn" id="18_bow_pickup"]
+[ext_resource type="PackedScene" uid="uid://3hkiyk7o5olc" path="res://scenes/bow_pickup.tscn" id="18_bow_pickup"]
 [ext_resource type="PackedScene" uid="uid://c3h13k6mrh6xk" path="res://scenes/ui/crosshair.tscn" id="19_crosshair"]
 [ext_resource type="PackedScene" uid="uid://dh8y4vg7n2pk6" path="res://scenes/book_pickup.tscn" id="20_book_pickup"]
 [ext_resource type="PackedScene" uid="uid://vsemw7rlb7n0" path="res://scenes/ui/book_ui.tscn" id="21_book_ui"]
 [ext_resource type="PackedScene" path="res://scenes/sign.tscn" id="22_sign"]
+[ext_resource type="PackedScene" uid="uid://cb73228bx3det" path="res://scenes/staff_pickup.tscn" id="23_pm3ni"]
 [ext_resource type="PackedScene" uid="uid://qccp0oiaucmb" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
 [ext_resource type="PackedScene" uid="uid://bcajlij5cylia" path="res://scenes/ui/quest_log.tscn" id="24_quest_log"]
 
@@ -105,7 +107,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 5)
 [node name="BerryBush2" parent="map" unique_id=1152892768 instance=ExtResource("12_berry_bush")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 5)
 
-[node name="AxePickup" parent="map" unique_id=1128530421 instance=ExtResource("14_axe_pickup")]
+[node name="HammerPickup2" parent="map" unique_id=1128530421 instance=ExtResource("14_axe_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.75, 0)
 
 [node name="BowPickup" parent="map" unique_id=1080495393 instance=ExtResource("18_bow_pickup")]
@@ -113,6 +115,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.75, 0)
 
 [node name="BookPickup" parent="map" unique_id=1241476017 instance=ExtResource("20_book_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.75, 0)
+
+[node name="StaffPickup" parent="map" unique_id=452862126 instance=ExtResource("23_pm3ni")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.8816996, 1.02336, -0.033198237)
 
 [node name="Sign" parent="map" unique_id=1111543818 instance=ExtResource("22_sign")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
@@ -122,6 +127,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
 
 [node name="EnemySpawner" parent="map" unique_id=235749264 instance=ExtResource("17_enemy_spawner")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.3654175, 0, -4.9104595)
+
+[node name="SwordPickup" parent="map" unique_id=1925297795 instance=ExtResource("14_y6deb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5465631, 1.0236831, -0.053691864)
 
 [node name="UIManager" type="Node" parent="." unique_id=2032296841]
 script = ExtResource("7_ui")

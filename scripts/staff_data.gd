@@ -1,13 +1,13 @@
 extends WeaponData
 
-## Axe weapon - slower but more powerful than sword
-class_name AxeData
+## Staff weapon - slower but more powerful than sword
+class_name StaffData
 
 func _init() -> void:
-	item_id = "axe"
-	item_name = "Axe"
+	item_id = "staff"
+	item_name = "Staff"
 	item_type = ItemType.WEAPON
-	description = "A heavy woodcutting axe. Deals high damage but swings slowly."
+	description = "A sorcerers staff."
 	max_stack = 1
 
 	damage = 20.0

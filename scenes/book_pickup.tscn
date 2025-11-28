@@ -1,26 +1,24 @@
 [gd_scene load_steps=4 format=3 uid="uid://dh8y4vg7n2pk6"]
 
 [ext_resource type="Script" uid="uid://6r7ywfvwa38c" path="res://scripts/item_pickup.gd" id="1_pickup"]
+[ext_resource type="PackedScene" uid="uid://bwkpciplskpab" path="res://assets/models/book.glb" id="2_c0tst"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_book"]
 size = Vector3(0.3, 0.4, 0.2)
 
-[sub_resource type="BoxMesh" id="BoxMesh_book"]
-size = Vector3(0.3, 0.4, 0.2)
-
-[node name="BookPickup" type="Area3D"]
+[node name="BookPickup" type="Area3D" unique_id=505933929]
 collision_layer = 4
 collision_mask = 0
 script = ExtResource("1_pickup")
 item_id = "book"
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1437270922]
 shape = SubResource("BoxShape3D_book")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("BoxMesh_book")
+[node name="ItemModel" parent="." unique_id=670732961 instance=ExtResource("2_c0tst")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
 
-[node name="RotationAnimation" type="AnimationPlayer" parent="."]
+[node name="RotationAnimation" type="AnimationPlayer" parent="." unique_id=1045920997]
 
-[node name="Timer" type="Timer" parent="."]
+[node name="Timer" type="Timer" parent="." unique_id=1049005425]
 autostart = true

@@ -2,12 +2,12 @@ extends InteractableBase
 
 ## Item pickup - collectible item that adds to inventory
 
-@export var item_id: String = "axe"
+@export var item_id: String = "hammer"
 @export var quantity: int = 1
 
 var is_picked_up: bool = false
 
-@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var mesh_instance: Node3D = $ItemModel
 
 func _ready() -> void:
 	super._ready()

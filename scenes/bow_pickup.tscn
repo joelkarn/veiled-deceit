@@ -1,26 +1,24 @@
-[gd_scene load_steps=4 format=3 uid="uid://bow_pickup_scene_01"]
+[gd_scene load_steps=4 format=3 uid="uid://3hkiyk7o5olc"]
 
 [ext_resource type="Script" uid="uid://6r7ywfvwa38c" path="res://scripts/item_pickup.gd" id="1_pickup"]
+[ext_resource type="PackedScene" uid="uid://can4yqxuqfbbu" path="res://assets/models/bow.glb" id="2_dua7c"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bow"]
-size = Vector3(0.3, 1.0, 0.3)
+size = Vector3(0.3, 1, 0.3)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow"]
-size = Vector3(0.3, 1.0, 0.3)
-
-[node name="BowPickup" type="Area3D"]
+[node name="BowPickup" type="Area3D" unique_id=149458513]
 collision_layer = 4
 collision_mask = 0
 script = ExtResource("1_pickup")
 item_id = "bow"
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1915002664]
 shape = SubResource("BoxShape3D_bow")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("BoxMesh_bow")
+[node name="ItemModel" parent="." unique_id=537473073 instance=ExtResource("2_dua7c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.9, 0.1)
 
-[node name="RotationAnimation" type="AnimationPlayer" parent="."]
+[node name="RotationAnimation" type="AnimationPlayer" parent="." unique_id=2015415801]
 
-[node name="Timer" type="Timer" parent="."]
+[node name="Timer" type="Timer" parent="." unique_id=188444620]
 autostart = true

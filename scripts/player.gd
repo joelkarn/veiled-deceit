@@ -579,7 +579,7 @@ func _update_equipped_item() -> void:
 
 	equipped_item_data = null
 
-## Perform a melee attack (sword, axe, etc.)
+## Perform a melee attack (sword, hammer, etc.)
 func _perform_melee_attack() -> void:
 	auto_attack_active = true
 	auto_attack_on_cooldown = true

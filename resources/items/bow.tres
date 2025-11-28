@@ -1,17 +1,16 @@
-[gd_resource type="Resource" script_class="BowData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="BowData" load_steps=4 format=3 uid="uid://btdb7vfp3n00u"]
 
-[ext_resource type="Script" path="res://scripts/bow_data.gd" id="1_bow"]
-[ext_resource type="Texture2D" path="res://assets/icons/bow_icon.svg" id="2_icon"]
+[ext_resource type="Script" uid="uid://bq8hi2pjcevtl" path="res://scripts/bow_data.gd" id="1_bow"]
+[ext_resource type="Texture2D" uid="uid://c4cy2pib2y4mm" path="res://assets/icons/bow_icon.svg" id="2_icon"]
+[ext_resource type="PackedScene" uid="uid://can4yqxuqfbbu" path="res://assets/models/bow.glb" id="3_61e7b"]
 
 [resource]
 script = ExtResource("1_bow")
-icon = ExtResource("2_icon")
-item_id = "bow"
-item_name = "Hunting Bow"
-item_type = 0
-description = "A ranged weapon. Aim and shoot at distant enemies."
-max_stack = 1
 damage = 12.0
 attack_speed = 0.8
-range = 20.0
-max_raycast_range = 20.0
+weapon_model = ExtResource("3_61e7b")
+item_id = "bow"
+item_name = "Hunting Bow"
+description = "A ranged weapon. Aim and shoot at distant enemies."
+icon = ExtResource("2_icon")
+item_type = 0

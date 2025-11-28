@@ -18,7 +18,7 @@ func _ready() -> void:
 	collision_mask = 0  # Don't collide with anything
 	monitoring = false  # We don't need to monitor (player will detect us)
 	monitorable = true  # Player can detect us
-	
+
 	# Connect signals (though we won't use them with the sphere cast approach)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
