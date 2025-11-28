@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=4 format=3 uid="uid://b2odqkq4kkltd"]
+[gd_resource type="Resource" script_class="SwordData" load_steps=4 format=3 uid="uid://b2odqkq4kkltd"]
 
-[ext_resource type="Script" uid="uid://cfjboegldqg5d" path="res://scripts/weapon_data.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://b1g8kw7qv2p3o" path="res://assets/icons/sword_icon.svg" id="2"]
+[ext_resource type="Script" uid="uid://dw3oovne5ma2i" path="res://scripts/sword_data.gd" id="2_5eq2r"]
 [ext_resource type="PackedScene" uid="uid://l7387dcgujm5" path="res://assets/models/sword.glb" id="3_5eq2r"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("2_5eq2r")
 damage = 15.0
 attack_speed = 1.2
 weapon_model = ExtResource("3_5eq2r")

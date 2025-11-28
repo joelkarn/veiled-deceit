@@ -123,6 +123,9 @@ var melee_debug_mat_active: StandardMaterial3D
 
 
 var ui_manager: Node
+var aoe_indicator: Node3D = null
+var aoe_indicator_scene: PackedScene = preload("res://scenes/ui/aoe_indicator.tscn")
+var staff_equipped: bool = false
 
 func _ready() -> void:
 	health = max_health
@@ -310,6 +313,36 @@ func _physics_process(delta: float) -> void:
 		_update_equipped_weapon()  # Check what weapon is equipped
 		_update_melee_debug_visual(false)
 		_update_crosshair_visibility()
+		_update_staff_equipped()
+		_update_aoe_indicator_visibility()
+
+
+func _update_staff_equipped() -> void:
+	staff_equipped = equipped_weapon_data != null and equipped_weapon_data is StaffData
+
+func _update_aoe_indicator_visibility() -> void:
+	if not is_local_player:
+		return
+	if staff_equipped:
+		if aoe_indicator == null:
+			aoe_indicator = aoe_indicator_scene.instantiate()
+			get_tree().current_scene.add_child(aoe_indicator)
+		# Raycast from camera to ground to position indicator
+		if camera:
+			var space_state = get_world_3d().direct_space_state
+			var from = camera.global_position
+			var to = from + (-camera.global_transform.basis.z * 100)
+			var query = PhysicsRayQueryParameters3D.create(from, to)
+			query.collide_with_areas = false
+			query.collision_mask = 1 # Only ground/environment
+			query.exclude = [self]
+			var result = space_state.intersect_ray(query)
+			if result and result.has("position"):
+				aoe_indicator.global_position = result["position"]
+	else:
+		if aoe_indicator:
+			aoe_indicator.queue_free()
+			aoe_indicator = null
 
 func _yaw_key_active() -> bool:
 	return Input.is_action_pressed("rotate_left") or Input.is_action_pressed("rotate_right")
@@ -526,12 +559,52 @@ func auto_attack() -> void:
 	# Update equipped weapon from toolbar
 	_update_equipped_weapon()
 
+	# Staff AoE attack
+	if equipped_weapon_data and equipped_weapon_data is StaffData:
+		_perform_staff_aoe_attack()
+		return
+
 	# Check if we're using a bow (ranged weapon)
 	if equipped_weapon_data and equipped_weapon_data is BowData:
 		_perform_bow_attack()
 	else:
 		# Default melee attack
 		_perform_melee_attack()
+
+func _perform_staff_aoe_attack() -> void:
+	auto_attack_active = true
+	auto_attack_on_cooldown = true
+
+	if animation_player and animation_player.has_animation("attack"):
+		animation_player.play("attack")
+
+	# Find Area3D in aoe_indicator
+	if aoe_indicator:
+		var area = aoe_indicator.get_node_or_null("Area3D")
+		if area:
+			var bodies = area.get_overlapping_bodies()
+			print("[DEBUG] AoE bodies found: ", bodies)
+			for body in bodies:
+				if body.has_method("take_damage"):
+					var body_name = ""
+					var body_peer_id = 0
+					if body.get("player_id") != null:
+						body_peer_id = body.player_id
+						body_name = "Player_" + str(body_peer_id)
+					else:
+						body_name = body.name
+					if multiplayer.is_server():
+						var damage = equipped_weapon_data.damage if equipped_weapon_data else 20.0
+						body.take_damage(damage, player_id)
+					else:
+						var network_manager = NetworkManager
+						if network_manager:
+							var damage = equipped_weapon_data.damage if equipped_weapon_data else 20.0
+							network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, damage)
+
+	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
+	auto_attack_active = false
+	auto_attack_on_cooldown = false
 
 ## Get currently equipped weapon from toolbar
 func _update_equipped_weapon() -> void:
@@ -731,8 +804,8 @@ func _update_melee_debug_visual(active: bool) -> void:
 	if melee_debug_mesh == null:
 		return
 
-	# Check if melee weapon is equipped (not bow)
-	var melee_equipped = equipped_weapon_data != null and not (equipped_weapon_data is BowData)
+	# Check if melee weapon is equipped (not bow, not staff)
+	var melee_equipped = equipped_weapon_data != null and not (equipped_weapon_data is BowData) and not (equipped_weapon_data is StaffData)
 
 	# Show only if melee weapon equipped, debug enabled, and local player
 	melee_debug_mesh.visible = melee_equipped and show_melee_debug and is_local_player

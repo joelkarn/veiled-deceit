@@ -27,7 +27,7 @@ func _find_berry_objects() -> void:
 	if not berry_bush_model:
 		print("BerryBush: berry_bush_model is null!")
 		return
-		
+
 	_find_berries_recursive(berry_bush_model)
 
 
@@ -35,12 +35,12 @@ func _find_node_by_name(root: Node, name: String) -> Node:
 	"""Find a node by name recursively"""
 	if root.name == name:
 		return root
-	
+
 	for child in root.get_children():
 		var found = _find_node_by_name(child, name)
 		if found:
 			return found
-	
+
 	return null
 
 func _find_berries_recursive(node: Node) -> void:
@@ -51,7 +51,7 @@ func _find_berries_recursive(node: Node) -> void:
 		# Make sure it's a Node3D (MeshInstance3D is a subclass of Node3D)
 		if node is Node3D:
 			berry_objects.append(node as Node3D)
-	
+
 	# Continue searching children
 	for child in node.get_children():
 		_find_berries_recursive(child)
@@ -203,7 +203,7 @@ func update_appearance() -> void:
 	# If berry objects haven't been found yet, try to find them
 	if berry_objects.is_empty() and berry_bush_model:
 		_find_berry_objects()
-	
+
 	# Show or hide all berry objects
 	for berry in berry_objects:
 		if berry:
