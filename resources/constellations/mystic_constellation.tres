@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstellationData" load_steps=2 format=3 uid="uid://tv08h1vbbjm3"]
+
+[ext_resource type="Script" uid="uid://ppsvqvjjr8n1" path="res://scripts/constellation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+constellation_name = "The Mystic"
+star_positions = Array[Vector3]([Vector3(0, 0.25, 0), Vector3(-0.18, 0.12, 0), Vector3(0.18, 0.12, 0), Vector3(0, 0, 0), Vector3(-0.2, -0.15, 0), Vector3(0.2, -0.15, 0)])
+connections = Array[Vector2i]([Vector2i(0, 3), Vector2i(1, 3), Vector2i(2, 3), Vector2i(3, 4), Vector2i(3, 5)])
+radius = 0.3
+description = "The Mystic constellation represents wisdom and magical prowess. Seers claim it guides those seeking arcane knowledge."

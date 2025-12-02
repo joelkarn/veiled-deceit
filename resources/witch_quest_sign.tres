@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+sign_title = "Ancient Prophecy"
+sign_text = "The deity's name is written in the stars, but only the worthy can read it.
+
+Take your astrolabe and find the obelisk.
+
+Stand where the ancients stood, and let the cosmos speak."
+quest_id_to_add = "find_obelisk"

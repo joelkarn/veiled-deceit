@@ -66,8 +66,43 @@ func _on_button_gui_input(event: InputEvent) -> void:
 			slot_right_clicked.emit(slot_index)
 
 func _update_selection_visual() -> void:
-	# Highlight selected slot with brighter appearance
+	# Highlight selected slot with much more visible styling
 	if is_selected:
-		modulate = Color(1.3, 1.3, 1.0, 1.0)  # Yellowish bright highlight
+		# Add bright border and glow effect
+		add_theme_stylebox_override("panel", _create_selected_style())
+		modulate = Color(1.0, 1.0, 1.0, 1.0)
 	else:
-		modulate = Color(1.0, 1.0, 1.0, 1.0)  # Normal
+		# Normal border
+		add_theme_stylebox_override("panel", _create_normal_style())
+		modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+func _create_selected_style() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.2, 0.2, 0.25, 0.8)
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	style.border_color = Color(1.0, 0.8, 0.2, 1.0)  # Bright golden border
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	# Add glow/shadow effect
+	style.shadow_color = Color(1.0, 0.8, 0.2, 0.6)
+	style.shadow_size = 4
+	return style
+
+func _create_normal_style() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.2, 0.2, 0.25, 0.8)
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_color = Color(0.4, 0.4, 0.45, 1.0)  # Subtle gray border
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	return style

@@ -160,7 +160,9 @@ func _update_2d_position() -> void:
 	# Center the label
 	screen_pos.x -= label_size.x / 2.0
 	screen_pos.y -= label_size.y / 2.0
-	name_label_ui.position = screen_pos
+
+	# Smoothly interpolate to target position to match health bar smoothness
+	name_label_ui.position = name_label_ui.position.lerp(screen_pos, 0.3)
 
 func _exit_tree() -> void:
 	if name_label_ui and is_instance_valid(name_label_ui):

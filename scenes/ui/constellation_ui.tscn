@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3 uid="uid://bplikcq5c3o53"]
+
+[ext_resource type="Script" uid="uid://cce8hrqqvt2lv" path="res://scripts/constellation_ui.gd" id="1_8bpte"]
+
+[node name="ConstellationUI" type="Control" unique_id=236903259]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8bpte")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -250.0
+offset_top = -150.0
+offset_right = 250.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Label" type="Label" parent="Panel" unique_id=673486010]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 40

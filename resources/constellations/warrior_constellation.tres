@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstellationData" load_steps=2 format=3 uid="uid://dmr66p7lpu8hw"]
+
+[ext_resource type="Script" uid="uid://ppsvqvjjr8n1" path="res://scripts/constellation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+constellation_name = "The Warrior"
+star_positions = Array[Vector3]([Vector3(0, 0.2, 0), Vector3(-0.15, 0.08, 0), Vector3(0.15, 0.08, 0), Vector3(-0.18, -0.12, 0), Vector3(0.18, -0.12, 0), Vector3(0, -0.2, 0)])
+connections = Array[Vector2i]([Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 3), Vector2i(2, 4), Vector2i(3, 5), Vector2i(4, 5)])
+radius = 0.3
+description = "The Warrior constellation represents courage and strength in battle. Ancient legends say those born under this sign become great fighters."

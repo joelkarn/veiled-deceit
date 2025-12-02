@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AstrolabeData" load_steps=3 format=3 uid="uid://chj8ottdwwl2s"]
+
+[ext_resource type="Script" uid="uid://b02yhwaj5t181" path="res://scripts/astrolabe_data.gd" id="1_astrolabe"]
+[ext_resource type="Texture2D" uid="uid://b6vuwfvsblkcp" path="res://assets/icons/astrolabe_icon.svg" id="1_dgfft"]
+
+[resource]
+script = ExtResource("1_astrolabe")
+item_id = "astrolabe"
+item_name = "Astrolabe"
+description = "An ancient celestial navigation tool. Allows you to read the stars and discover constellations in the night sky."
+icon = ExtResource("1_dgfft")

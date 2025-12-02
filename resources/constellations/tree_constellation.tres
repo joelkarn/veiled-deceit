@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstellationData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/constellation_data.gd" id="1_tree"]
+
+[resource]
+script = ExtResource("1_tree")
+constellation_name = "The Eternal Tree"
+star_positions = Array[Vector3]([Vector3(0, -0.2, 0), Vector3(0, -0.1, 0), Vector3(0, 0, 0), Vector3(-0.1, 0.1, 0), Vector3(0.1, 0.1, 0), Vector3(-0.15, 0.15, 0), Vector3(0.15, 0.15, 0), Vector3(0, 0.2, 0)])
+connections = Array[Vector2i]([Vector2i(0, 1), Vector2i(1, 2), Vector2i(2, 3), Vector2i(2, 4), Vector2i(3, 5), Vector2i(4, 6), Vector2i(3, 7), Vector2i(4, 7)])
+radius = 0.3
+description = "The World Tree, its roots deep in the earth and branches reaching to the heavens."

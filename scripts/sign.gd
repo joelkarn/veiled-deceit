@@ -21,6 +21,15 @@ func interact(player: Node) -> void:
 	if not player.is_local_player:
 		return
 	
+	# Add quest if specified
+	if sign_data.quest_id_to_add != "":
+		print("[Sign] Attempting to add quest: ", sign_data.quest_id_to_add)
+		if QuestManager and QuestManager.has_method("add_quest_by_id"):
+			print("[Sign] Found QuestManager, adding quest")
+			QuestManager.add_quest_by_id(sign_data.quest_id_to_add)
+		else:
+			print("[Sign] ERROR: Could not find QuestManager or add_quest_by_id method")
+	
 	# Show sign UI
 	var sign_ui = player.get_tree().current_scene.get_node_or_null("UILayers/SignUILayer/SignUI")
 	if sign_ui and sign_ui.has_method("show_sign"):

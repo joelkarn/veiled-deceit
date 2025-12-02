@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstellationData" load_steps=2 format=3 uid="uid://bgpktejbxwlc7"]
+
+[ext_resource type="Script" uid="uid://ppsvqvjjr8n1" path="res://scripts/constellation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+constellation_name = "The Hunter"
+star_positions = Array[Vector3]([Vector3(0, 0.18, 0), Vector3(-0.1, 0.05, 0), Vector3(0.1, 0.05, 0), Vector3(-0.22, 0, 0), Vector3(0.22, 0, 0), Vector3(0, -0.18, 0)])
+connections = Array[Vector2i]([Vector2i(0, 1), Vector2i(0, 2), Vector2i(1, 3), Vector2i(2, 4), Vector2i(1, 5), Vector2i(2, 5)])
+radius = 0.3
+description = "The Hunter constellation marks the path of the skilled tracker. It's said to bring precision and keen senses to those who follow it."

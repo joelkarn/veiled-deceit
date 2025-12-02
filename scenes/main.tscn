@@ -1,8 +1,10 @@
-[gd_scene load_steps=33 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=46 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
 [ext_resource type="Script" uid="uid://krhubcp5rbah" path="res://scripts/main.gd" id="1_pm3ni"]
 [ext_resource type="Texture2D" uid="uid://cjcgjp0geraqd" path="res://assets/textures/grids/Orange/texture_09.png" id="2_c35nn"]
+[ext_resource type="Shader" uid="uid://dhrnmosatfrf7" path="res://assets/shaders/starfield_sky.gdshader" id="2_og1vs"]
+[ext_resource type="Texture2D" uid="uid://b2rkb66h1lgyw" path="res://assets/textures/panorama_image.png" id="2_tel4y"]
 [ext_resource type="Texture2D" uid="uid://gax208yoighg" path="res://assets/textures/grids/Purple/texture_09.png" id="3_3vadj"]
 [ext_resource type="Texture2D" uid="uid://bm5h5tfy8aiyu" path="res://assets/textures/grids/Green/texture_09.png" id="4_o6m22"]
 [ext_resource type="Script" uid="uid://bu8cuqw144nns" path="res://scripts/ui_manager.gd" id="7_ui"]
@@ -24,23 +26,26 @@
 [ext_resource type="PackedScene" uid="uid://cb73228bx3det" path="res://scenes/staff_pickup.tscn" id="23_pm3ni"]
 [ext_resource type="PackedScene" uid="uid://qccp0oiaucmb" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
 [ext_resource type="PackedScene" uid="uid://bcajlij5cylia" path="res://scenes/ui/quest_log.tscn" id="24_quest_log"]
+[ext_resource type="PackedScene" uid="uid://bplikcq5c3o53" path="res://scenes/ui/constellation_ui.tscn" id="26_dgi5k"]
+[ext_resource type="Script" uid="uid://c31as2n6r2gs1" path="res://scripts/constellation_manager.gd" id="26_fv21b"]
+[ext_resource type="Script" uid="uid://ppsvqvjjr8n1" path="res://scripts/constellation_data.gd" id="27_tel4y"]
+[ext_resource type="Resource" uid="uid://bgpktejbxwlc7" path="res://resources/constellations/hunter_constellation.tres" id="28_qkpxi"]
+[ext_resource type="Resource" uid="uid://tv08h1vbbjm3" path="res://resources/constellations/mystic_constellation.tres" id="29_5q0nq"]
+[ext_resource type="Resource" uid="uid://dmr66p7lpu8hw" path="res://resources/constellations/warrior_constellation.tres" id="30_dgi5k"]
+[ext_resource type="Resource" path="res://resources/constellations/dragon_constellation.tres" id="31_5q0nq"]
+[ext_resource type="Resource" path="res://resources/constellations/tree_constellation.tres" id="32_dgi5k"]
+[ext_resource type="Script" path="res://scripts/quest_manager.gd" id="33_quest_manager"]
+[ext_resource type="Script" path="res://scripts/witch_content_spawner.gd" id="34_witch_spawner"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_oulvc"]
-sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
-ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_qkpxi"]
+panorama = ExtResource("2_tel4y")
 
 [sub_resource type="Sky" id="Sky_4bnjx"]
-sky_material = SubResource("ProceduralSkyMaterial_oulvc")
+sky_material = SubResource("PanoramaSkyMaterial_qkpxi")
 
 [sub_resource type="Environment" id="Environment_l67pa"]
 background_mode = 2
 sky = SubResource("Sky_4bnjx")
-tonemap_mode = 2
-sdfgi_enabled = true
-glow_enabled = true
-fog_enabled = true
-fog_light_color = Color(1, 1, 1, 1)
-fog_density = 0.001
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_jscy8"]
 vertices = PackedVector3Array(-499.5, 0.5, 9.25, -8.25, 0.5, 9.25, -5.25, 0.5, 7, -5.25, 0.5, -499.5, -499.5, 0.5, -499.5, -1, 0.5, 12, -0.25, 0.5, 11.25, -0.5, 0.5, 9, -3.75, 0.5, 8, 2.75, 0.5, 7.25, 2.75, 0.5, -499.5, 3.25, 0.5, 7.25, 4, 0.5, 8.5, 499.5, 0.5, 8.5, 499.5, 0.5, -499.5, -4.25, 3.5, 13.25, -3.5, 3.5, 13.25, -2.25, 3.5, 12.25, -5, 3.5, 8.25, -7, 3.5, 9.5, 0.25, 0.5, 12, -2, 0.5, 13.5, 4, 0.5, 9.25, 3, 0.5, 9.75, 3, 0.5, 11.5, -4, 0.5, 499.5, 499.5, 0.5, 499.5, -4, 0.5, 14.5, -4, 0.5, 13, -2.75, 0.5, 12.25, -5, 0.5, 8.75, -6.5, 0.5, 9.5, -5, 0.5, 14.25, -8, 0.5, 10.25, -499.5, 0.5, 499.5, 0.5, 2.5, 9.5, 0.75, 2.5, 10.75, 2, 2.5, 10.5, 1.75, 2.5, 9.25)
@@ -63,7 +68,20 @@ uv1_triplanar = true
 albedo_texture = ExtResource("4_o6m22")
 uv1_triplanar = true
 
-[node name="world" type="Node3D" unique_id=238736076]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2wyq8"]
+shader = ExtResource("2_og1vs")
+shader_parameter/num_constellations = 0
+shader_parameter/constellation_centers = PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+shader_parameter/constellation_radii = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+shader_parameter/constellation_glow = PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+shader_parameter/star_density = 500.0
+shader_parameter/star_size = 0.003
+shader_parameter/star_brightness = 0.8
+shader_parameter/twinkle_speed = 0.5
+shader_parameter/sky_color_top = Vector3(0.02, 0.02, 0.08)
+shader_parameter/sky_color_horizon = Vector3(0.1, 0.05, 0.15)
+
+[node name="world2" type="Node3D" unique_id=238736076]
 script = ExtResource("1_pm3ni")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=635195609]
@@ -184,3 +202,18 @@ layer = 13
 layer = 2
 
 [node name="QuestLog" parent="UILayers/QuestLogLayer" unique_id=1835997152 instance=ExtResource("24_quest_log")]
+
+[node name="ConstellationUILayer" type="CanvasLayer" parent="UILayers" unique_id=1477245294]
+layer = 2
+
+[node name="ConstellationUI" parent="UILayers/ConstellationUILayer" unique_id=236903259 instance=ExtResource("26_dgi5k")]
+
+[node name="ConstellationManager" type="Node" parent="." unique_id=248159986]
+script = ExtResource("26_fv21b")
+constellations = Array[ExtResource("27_tel4y")]([ExtResource("28_qkpxi"), ExtResource("29_5q0nq"), ExtResource("30_dgi5k"), ExtResource("31_5q0nq"), ExtResource("32_dgi5k")])
+sky_material = SubResource("ShaderMaterial_2wyq8")
+
+[node name="WitchContentSpawner" type="Node" parent="."]
+script = ExtResource("34_witch_spawner")
+sign_spawn_position = Vector3(0, 0, 5)
+obelisk_spawn_position = Vector3(10, 0, 10)

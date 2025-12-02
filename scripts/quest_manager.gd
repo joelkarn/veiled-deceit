@@ -80,6 +80,29 @@ func get_quest(quest_id: String) -> QuestData:
 		return quest_database[quest_id]
 	return null
 
+## Add a quest by ID (loads from resources/quests/)
+func add_quest_by_id(quest_id: String) -> bool:
+	# Check if quest already exists
+	if quest_database.has(quest_id):
+		print("QuestManager: Quest already exists: ", quest_id)
+		return false
+	
+	# Try to load the quest resource
+	var quest_path = "res://resources/quests/" + quest_id + ".tres"
+	var quest = load(quest_path)
+	
+	if not quest:
+		print("QuestManager: Failed to load quest: ", quest_path)
+		return false
+	
+	# Add to active quests and database
+	active_quests.append(quest)
+	quest_database[quest_id] = quest
+	quests_changed.emit()
+	
+	print("QuestManager: Added quest: ", quest.quest_name)
+	return true
+
 ## Reset all quests (for testing)
 func reset_all_quests() -> void:
 	for quest in active_quests:

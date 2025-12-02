@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConstellationData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/constellation_data.gd" id="1_dragon"]
+
+[resource]
+script = ExtResource("1_dragon")
+constellation_name = "The Dragon"
+star_positions = Array[Vector3]([Vector3(0, 0.2, 0), Vector3(-0.15, 0.15, 0), Vector3(-0.25, 0.1, 0), Vector3(-0.2, 0, 0), Vector3(-0.15, -0.1, 0), Vector3(0.1, 0.1, 0), Vector3(0.2, 0.05, 0), Vector3(0.25, -0.05, 0)])
+connections = Array[Vector2i]([Vector2i(0, 1), Vector2i(1, 2), Vector2i(2, 3), Vector2i(3, 4), Vector2i(0, 5), Vector2i(5, 6), Vector2i(6, 7)])
+radius = 0.3
+description = "An ancient dragon soaring through the night sky, guardian of forgotten treasures."

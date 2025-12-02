@@ -11,8 +11,8 @@ var is_host: bool = false
 @onready var visuals: Node3D = $visuals
 @onready var camera: Camera3D = $camera_mount/Camera3D
 
-@export var pitch_min_deg := -80.0
-@export var pitch_max_deg := 20.0
+@export var pitch_min_deg := -89.0  # Look down
+@export var pitch_max_deg := 89.0  # Look up
 var _pitch := 0.0
 
 @export var key_yaw_speed_deg := 180.0
@@ -127,6 +127,17 @@ var aoe_indicator: Node3D = null
 var aoe_indicator_scene: PackedScene = preload("res://scenes/ui/aoe_indicator.tscn")
 var staff_equipped: bool = false
 
+# Constellation system
+var constellation_manager: Node = null
+var constellation_ui: Control = null
+var current_constellation_index: int = -1
+const CONSTELLATION_CHECK_INTERVAL: float = 0.1
+var constellation_check_timer: float = 0.0
+var astrolabe_equipped: bool = false
+
+# Camera collision
+var default_camera_position: Vector3 = Vector3.ZERO
+
 func _ready() -> void:
 	health = max_health
 	velocity = Vector3.ZERO
@@ -158,19 +169,33 @@ func _ready() -> void:
 	ui_manager = get_node_or_null("../UIManager")
 	crosshair_ui = get_tree().current_scene.get_node_or_null("UILayers/CrosshairLayer/Crosshair")
 	book_ui = get_tree().current_scene.get_node_or_null("UILayers/BookUILayer/BookUI")
+	constellation_manager = get_tree().current_scene.get_node_or_null("ConstellationManager")
+	constellation_ui = get_tree().current_scene.get_node_or_null("UILayers/ConstellationUILayer/ConstellationUI")
 
 	_create_melee_area()
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
 	_create_debug_line()
 
+	# Give astrolabe to witch players
+	if player_name == "Witch":
+		call_deferred("_give_starting_astrolabe")
+
 	# Setup camera after everything is ready
 	call_deferred("_setup_camera")
+
+func _give_starting_astrolabe() -> void:
+	# Give astrolabe to witch at game start
+	if InventoryManager:
+		InventoryManager.add_item(player_id, "astrolabe", 1)
+		print("Gave astrolabe to Witch player ", player_id)
 
 func _setup_camera() -> void:
 	if camera:
 		camera.fov = fov
 		camera.current = is_local_player
+		# Store the default camera position for collision recovery
+		default_camera_position = camera.position
 	if camera_mount:
 		_pitch = camera_mount.rotation.x
 
@@ -315,10 +340,49 @@ func _physics_process(delta: float) -> void:
 		_update_crosshair_visibility()
 		_update_staff_equipped()
 		_update_aoe_indicator_visibility()
+		_update_astrolabe_equipped()
+
+		# Prevent camera from going through ground
+		_adjust_camera_collision()
+
+		# Check for constellations (only when astrolabe equipped)
+		if astrolabe_equipped:
+			constellation_check_timer += delta
+			if constellation_check_timer >= CONSTELLATION_CHECK_INTERVAL:
+				constellation_check_timer = 0.0
+				_check_constellation_look()
+		else:
+			# Clear constellation highlight when astrolabe not equipped
+			if current_constellation_index != -1:
+				if constellation_manager:
+					constellation_manager.highlight_constellation(current_constellation_index, 0.0)
+				if constellation_ui:
+					constellation_ui.hide_constellation()
+				current_constellation_index = -1
 
 
 func _update_staff_equipped() -> void:
 	staff_equipped = equipped_weapon_data != null and equipped_weapon_data is StaffData
+
+func _update_astrolabe_equipped() -> void:
+	# Check if astrolabe is equipped in toolbar
+	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
+	if not toolbar:
+		astrolabe_equipped = false
+		return
+
+	var selected_slot = toolbar.selected_slot
+	var inventory = InventoryManager.get_inventory(player_id)
+
+	if selected_slot >= 0 and selected_slot < inventory.size():
+		var slot_data = inventory[selected_slot]
+		var item_id = slot_data.get("item_id", "")
+
+		if item_id == "astrolabe":
+			astrolabe_equipped = true
+			return
+
+	astrolabe_equipped = false
 
 func _update_aoe_indicator_visibility() -> void:
 	if not is_local_player:
@@ -338,7 +402,9 @@ func _update_aoe_indicator_visibility() -> void:
 			query.exclude = [self]
 			var result = space_state.intersect_ray(query)
 			if result and result.has("position"):
-				aoe_indicator.global_position = result["position"]
+				# Smoothly interpolate to target position to avoid jitter
+				var target_pos = result["position"]
+				aoe_indicator.global_position = aoe_indicator.global_position.lerp(target_pos, 0.3)
 	else:
 		if aoe_indicator:
 			aoe_indicator.queue_free()
@@ -1418,3 +1484,75 @@ func _stop_reading_book() -> void:
 	book_ui.hide_book()
 
 	print("Stopped reading book")
+
+# ----------------------------
+# Constellation detection system
+# ----------------------------
+
+func _check_constellation_look() -> void:
+	if not constellation_manager or not camera:
+		return
+
+	# Get camera look direction
+	var camera_direction = -camera.global_transform.basis.z
+
+	# Check if looking at any constellation
+	var constellation_index = constellation_manager.check_ray_intersection(camera_direction)
+
+	# Update highlight if changed
+	if constellation_index != current_constellation_index:
+		# Unhighlight previous
+		if current_constellation_index != -1:
+			constellation_manager.highlight_constellation(current_constellation_index, 0.0)
+			if constellation_ui:
+				constellation_ui.hide_constellation()
+
+		# Highlight new
+		current_constellation_index = constellation_index
+		if current_constellation_index != -1:
+			constellation_manager.highlight_constellation(current_constellation_index, 1.0)
+			var constellation_name = constellation_manager.get_constellation_name(current_constellation_index)
+			print("Looking at constellation: ", constellation_name)
+
+			# Show constellation name in UI
+			if constellation_ui:
+				constellation_ui.show_constellation(constellation_name)
+
+# ----------------------------
+# Camera collision prevention
+# ----------------------------
+
+func _adjust_camera_collision() -> void:
+	if not camera or not camera_mount:
+		return
+
+	# Calculate target position in world space
+	var from = camera_mount.global_position
+	var camera_offset_world = camera_mount.global_transform.basis * default_camera_position
+	var camera_target_position = from + camera_offset_world
+
+	# Raycast from mount to target camera position
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(from, camera_target_position)
+	query.collision_mask = 1  # Only check layer 1 (environment/ground)
+	query.exclude = [self]
+
+	var result = space_state.intersect_ray(query)
+
+	var target_local_pos = default_camera_position
+
+	if result and result.has("position"):
+		# Collision detected - calculate safe distance
+		var hit_pos = result["position"]
+		var safe_offset = 0.2
+		var collision_distance = from.distance_to(hit_pos) - safe_offset
+		var clamped_distance = max(collision_distance, 0.5)
+
+		# Calculate clamped position in local space
+		target_local_pos = default_camera_position.normalized() * clamped_distance
+
+	# Only adjust if difference is significant (deadzone to prevent micro-jitter)
+	var position_diff = camera.position.distance_to(target_local_pos)
+	if position_diff > 0.01:
+		# Always lerp smoothly to target (whether it's default or clamped)
+		camera.position = camera.position.lerp(target_local_pos, 0.2)
