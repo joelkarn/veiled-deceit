@@ -328,9 +328,6 @@ func die() -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func sync_enemy_death(attacker_id: int) -> void:
-	# Track quest progress only for the player who killed this enemy
-	var local_player_id = multiplayer.get_unique_id()
-	if attacker_id == local_player_id and QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1, attacker_id)
-
+	# Quest progress is already tracked on server and synced via QuestManager RPC
+	# No need to track here on client - just handle death
 	queue_free()

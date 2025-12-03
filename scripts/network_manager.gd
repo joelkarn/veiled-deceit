@@ -11,6 +11,7 @@ var is_shutting_down: bool = false
 # Multiplayer scene ready handshake
 var peers_ready: Dictionary = {} # {peer_id: true}
 var expected_peers: Array = []
+var peers_spawned: Dictionary = {} # {peer_id: true} - tracks who has spawned their players
 
 # Character selection state
 var player_characters: Dictionary = {}  # {peer_id: character_name}
@@ -167,6 +168,7 @@ func start_game() -> void:
 
 	# Setup handshake tracking
 	peers_ready.clear()
+	peers_spawned.clear()
 	expected_peers = [1]
 	expected_peers.append_array(multiplayer.get_peers())
 	print("[Handshake] Expected peers: ", expected_peers)
@@ -207,18 +209,104 @@ func scene_ready(peer_id: int) -> void:
 			print("[Handshake] Peer ", id, " not ready yet.")
 			break
 	if all_ready:
-		print("[Handshake] All peers ready! Spawning players...")
+		print("[Handshake] All peers ready! Sending spawn commands...")
+		# Send spawn commands to all peers (including self)
 		for id in expected_peers:
 			if player_characters.has(id):
-				print("[Handshake] Spawning player for peer ", id)
-				spawn_player(id)
+				print("[Handshake] Sending spawn command for peer ", id)
+				_send_spawn_command_to_all(id)
+
+		# Wait for all peers to confirm they've spawned players
+		# This happens in _confirm_player_spawned RPC
+
+# Send spawn command to all peers (including self)
+func _send_spawn_command_to_all(peer_id: int) -> void:
+	if not player_characters.has(peer_id):
+		return
+
+	var spawn_index = (peer_id - 1) % spawn_points.size()
+	var spawn_position = spawn_points[spawn_index]
+	var character_name = player_characters[peer_id]
+
+	# Send to all peers (including self via call_local)
+	rpc("_spawn_player_on_client", peer_id, spawn_position, character_name)
+
+# RPC: Spawn a player on this client
+@rpc("authority", "call_local", "reliable")
+func _spawn_player_on_client(peer_id: int, spawn_position: Vector3, character_name: String) -> void:
+	print("[Handshake] Spawning player ", peer_id, " on peer ", multiplayer.get_unique_id())
+
+	# Spawn the player locally
+	_do_immediate_spawn(peer_id, spawn_position, character_name)
+
+	# Notify server that we've spawned this player
+	if multiplayer.is_server():
+		# Host confirms immediately
+		_confirm_player_spawned(multiplayer.get_unique_id(), peer_id)
+	else:
+		# Client sends confirmation to host
+		rpc_id(1, "_confirm_player_spawned", multiplayer.get_unique_id(), peer_id)
+
+# Confirm that a peer has spawned a player
+@rpc("any_peer", "call_remote", "reliable")
+func _confirm_player_spawned(confirming_peer_id: int, spawned_player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	print("[Handshake] Peer ", confirming_peer_id, " confirmed spawn of player ", spawned_player_id)
+
+	# Track which peers have confirmed spawning all players
+	if not peers_spawned.has(confirming_peer_id):
+		peers_spawned[confirming_peer_id] = []
+
+	peers_spawned[confirming_peer_id].append(spawned_player_id)
+
+	# Check if all peers have spawned all players
+	var all_spawned = true
+	for peer_id in expected_peers:
+		if not peers_spawned.has(peer_id):
+			all_spawned = false
+			print("[Handshake] Waiting for peer ", peer_id, " to spawn players")
+			break
+
+		# Check if this peer has spawned all expected players
+		var spawned_list = peers_spawned[peer_id]
+		for player_id in expected_peers:
+			if not player_id in spawned_list:
+				all_spawned = false
+				print("[Handshake] Peer ", peer_id, " hasn't spawned player ", player_id, " yet")
+				break
+
+		if not all_spawned:
+			break
+
+	if all_spawned:
+		print("[Handshake] All players spawned on all peers! Initializing quests...")
+		# Initialize quests for all players now that everyone is spawned
+		_initialize_all_player_quests()
 		handshake_complete.emit()
-		# Notify all peers to hide loading screen
-		rpc("handshake_done")
+		rpc("_handshake_done")
+
+# Initialize quests for all players after handshake (server only)
+func _initialize_all_player_quests() -> void:
+	if not multiplayer.is_server():
+		return
+
+	if not QuestManager:
+		print("[Handshake] WARNING: QuestManager not found!")
+		return
+
+	print("[Handshake] Initializing quests for all players...")
+	for peer_id in expected_peers:
+		if player_characters.has(peer_id):
+			print("[Handshake] Initializing quests for player ", peer_id)
+			QuestManager.initialize_player(peer_id)
+
+	print("[Handshake] Quest initialization complete!")
 
 # RPC to notify all peers handshake is done
-@rpc("any_peer", "call_remote", "reliable")
-func handshake_done() -> void:
+@rpc("authority", "call_remote", "reliable")
+func _handshake_done() -> void:
 	print("[Handshake] handshake_done RPC received, hiding loading screen.")
 	handshake_complete.emit()
 
@@ -327,7 +415,71 @@ func _on_server_disconnected() -> void:
 	# Shutdown game
 	call_deferred("_shutdown_game_immediate")
 
-# Spawn a player for a given peer_id
+# Immediate spawn without network handshaking (used during initial game start)
+func _do_immediate_spawn(peer_id: int, spawn_position: Vector3, character_name: String) -> void:
+	# Don't spawn if we're shutting down
+	if is_shutting_down:
+		return
+
+	# Verify multiplayer is initialized
+	if multiplayer.multiplayer_peer == null:
+		print("ERROR: Cannot spawn player - multiplayer not initialized!")
+		return
+
+	# Check if player has selected a character
+	if not player_characters.has(peer_id):
+		print("ERROR: Cannot spawn player ", peer_id, " - no character selected!")
+		return
+
+	# Only spawn if we don't already have this player
+	var existing_player = get_tree().current_scene.get_node_or_null("Player_" + str(peer_id))
+	if existing_player:
+		print("[Handshake] Player ", peer_id, " already exists on peer ", multiplayer.get_unique_id())
+		return
+
+	var my_peer_id = multiplayer.get_unique_id()
+	var is_local = (peer_id == my_peer_id)
+	var is_server = multiplayer.is_server()
+
+	# Instantiate player
+	var player = player_scene.instantiate()
+	if not player:
+		print("ERROR: Failed to instantiate player scene!")
+		return
+
+	player.name = "Player_" + str(peer_id)
+	player.position = spawn_position
+
+	# Set network properties
+	player.player_id = peer_id
+	player.is_local_player = is_local
+	player.is_host = is_server
+	player.player_name = character_name
+
+	# Add to scene
+	var parent = get_tree().current_scene
+	if not parent:
+		print("ERROR: Could not find scene root to add player!")
+		player.queue_free()
+		return
+
+	parent.add_child(player, true)
+
+	# Initialize inventory for this player
+	if InventoryManager:
+		InventoryManager.initialize_player_inventory(peer_id)
+
+		# Give starting items (server only)
+		if is_server:
+			await get_tree().process_frame
+			InventoryManager.add_item(peer_id, "sword", 1)
+
+	# NOTE: Quests are initialized later in _initialize_all_player_quests() after handshake
+	# This prevents duplicate quest initialization
+
+	print("[Handshake] Spawned player ", peer_id, " on peer ", multiplayer.get_unique_id())
+
+# Spawn a player for a given peer_id (legacy function, kept for late joiners)
 func spawn_player(peer_id: int) -> void:
 	# Don't spawn if we're shutting down
 	if is_shutting_down:
@@ -388,13 +540,16 @@ func spawn_player(peer_id: int) -> void:
 			await get_tree().process_frame
 			InventoryManager.add_item(peer_id, "sword", 1)
 
-	# If we're the server, tell all clients to spawn this player
-	if is_server:
-		call_deferred("_send_spawn_to_clients", peer_id, spawn_position, character_name)
+	# Initialize quests for this player (server only)
+	# This is ONLY for late joiners - initial players get quests after handshake
+	if is_server and QuestManager and game_started:
+		QuestManager.initialize_player(peer_id)
+		print("[LateJoin] Initialized quests for late joiner: ", peer_id)
 
-# Send spawn to all clients
-func _send_spawn_to_clients(peer_id: int, position: Vector3, character_name: String) -> void:
-	rpc("sync_player_spawn", peer_id, position, character_name)
+	# If we're the server, tell all clients to spawn this player (for late joiners)
+	if is_server:
+		# Use the old sync method for late joiners (after game has started)
+		rpc("sync_player_spawn", peer_id, spawn_position, character_name)
 
 # Clients send their input to host
 @rpc("any_peer", "call_local", "reliable")
@@ -548,6 +703,23 @@ func request_add_quest(quest_id: String, player_id: int) -> void:
 	# Add quest on server for specific player
 	if QuestManager and QuestManager.has_method("add_quest_by_id"):
 		QuestManager.add_quest_by_id(quest_id, player_id)
+	else:
+		print("[NetworkManager] ERROR: Could not find QuestManager")
+
+# Clients send book read events to host for quest tracking
+@rpc("any_peer", "call_remote", "reliable")
+func process_book_read(player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	if is_shutting_down:
+		return
+
+	print("[NetworkManager] Server received book read from player ", player_id)
+
+	# Track quest progress on server
+	if QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1, player_id)
 	else:
 		print("[NetworkManager] ERROR: Could not find QuestManager")
 

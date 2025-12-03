@@ -163,23 +163,24 @@ func _complete_harvest() -> void:
 	if success:
 		print("BerryBush: Player ", player_id, " harvested ", berries_per_harvest, " berries")
 
-		# Track quest progress for berry collection (only for the host if they're the harvester)
-		var local_player_id = multiplayer.get_unique_id()
-		if player_id == local_player_id and QuestManager:
+		# Track quest progress for berry collection (server only, syncs to clients)
+		if multiplayer.is_server() and QuestManager:
 			QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_per_harvest, player_id)
 
 		# Play success sound (test audio system)
 		_play_pickup_sound()
+
+		# Hide UI for harvesting player (check which peer is the harvester)
+		var local_player_id = multiplayer.get_unique_id()
 
 		has_berries = false
 		is_being_harvested = false
 		harvesting_player = null
 		harvest_progress = 0.0
 
-		# Hide UI for local player (host) if they were harvesting
-		if player_id == local_player_id:
-			if HarvestUIManager:
-				HarvestUIManager.cancel_harvest_ui()
+		# Hide UI for harvesting player
+		if player_id == local_player_id and HarvestUIManager:
+			HarvestUIManager.cancel_harvest_ui()
 
 		update_appearance()
 		rpc("sync_bush_state", false)
@@ -247,10 +248,8 @@ func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
 	is_being_harvested = false
 	harvest_progress = 0.0
 
-	# Track quest progress only for the player who harvested
-	var local_player_id = multiplayer.get_unique_id()
-	if harvester_id == local_player_id and QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_count, harvester_id)
+	# Quest progress is already tracked on server and synced via QuestManager RPC
+	# No need to track here on client
 
 	# Hide UI for local player
 	if HarvestUIManager:

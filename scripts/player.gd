@@ -1491,11 +1491,25 @@ func _start_reading_book() -> void:
 	# Show the book UI with the book data
 	book_ui.show_book(equipped_item_data)
 
-	# Track quest progress for reading the book
-	if QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1, player_id)
+	# Track quest progress for reading the book (send to server for validation)
+	if multiplayer.is_server():
+		# Server processes directly
+		if QuestManager:
+			QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1, player_id)
+	else:
+		# Client sends to server for processing
+		_send_book_read_to_server()
 
 	print("Started reading book: ", equipped_item_data.item_name)
+
+# Send book read event to server for quest tracking
+func _send_book_read_to_server() -> void:
+	if multiplayer.multiplayer_peer == null:
+		return
+
+	var network_manager = NetworkManager
+	if network_manager:
+		network_manager.rpc_id(1, "process_book_read", player_id)
 
 func _stop_reading_book() -> void:
 	if not is_local_player or not book_ui:

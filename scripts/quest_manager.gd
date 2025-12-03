@@ -12,7 +12,9 @@ var quest_database: Dictionary = {}
 
 func _ready() -> void:
 	_load_quest_database()
-	_initialize_starter_quests()
+	# NOTE: Quests are NO LONGER initialized here!
+	# They are initialized after handshake via NetworkManager._initialize_all_player_quests()
+	# This prevents duplicate quest initialization for clients
 
 ## Load all quest resources
 func _load_quest_database() -> void:
@@ -47,10 +49,37 @@ func _initialize_starter_quests_for_player(player_id: int) -> void:
 
 ## Initialize quests when a player is added to the game
 func initialize_player(player_id: int) -> void:
+	if player_quests.has(player_id) and player_quests[player_id].size() > 0:
+		print("QuestManager: Player ", player_id, " already has quests initialized, skipping")
+		return
+
 	if not player_quests.has(player_id):
 		player_quests[player_id] = []
-		_initialize_starter_quests_for_player(player_id)
-		print("QuestManager: Initialized quests for player ", player_id)
+
+	_initialize_starter_quests_for_player(player_id)
+	print("QuestManager: Initialized quests for player ", player_id)
+
+	# Sync to clients if we're the server
+	if multiplayer.is_server():
+		print("QuestManager: Syncing starter quests to clients for player ", player_id)
+		rpc("_sync_starter_quests", player_id)
+
+## RPC to sync starter quests to clients
+@rpc("authority", "call_remote", "reliable")
+func _sync_starter_quests(player_id: int) -> void:
+	print("QuestManager: _sync_starter_quests RPC received for player ", player_id)
+
+	# Check if already initialized (shouldn't happen, but safety check)
+	if player_quests.has(player_id) and player_quests[player_id].size() > 0:
+		print("QuestManager: Player ", player_id, " already has quests (from sync), skipping")
+		return
+
+	# Initialize quests on client
+	if not player_quests.has(player_id):
+		player_quests[player_id] = []
+
+	_initialize_starter_quests_for_player(player_id)
+	print("QuestManager: Synced ", player_quests[player_id].size(), " starter quests for player ", player_id)
 
 ## Initialize the three starter quests (deprecated - calls per-player version)
 func _initialize_starter_quests() -> void:
@@ -63,8 +92,9 @@ func get_active_quests(player_id: int = -1) -> Array[QuestData]:
 	if player_id == -1:
 		player_id = multiplayer.get_unique_id()
 
+	# Don't auto-initialize - quests should be initialized via handshake
 	if not player_quests.has(player_id):
-		initialize_player(player_id)
+		return []  # Return empty array if player not initialized yet
 
 	# Cast to proper type since Dictionary values can't be fully typed
 	var quests: Array[QuestData] = []
@@ -125,8 +155,9 @@ func add_progress_by_type(quest_type: QuestData.QuestType, amount: int = 1, play
 	if player_id == -1:
 		player_id = multiplayer.get_unique_id()
 
+	# Don't auto-initialize - quests should be initialized via handshake
 	if not player_quests.has(player_id):
-		initialize_player(player_id)
+		return  # Silently return if player not initialized yet
 
 	for quest in player_quests[player_id]:
 		if quest.quest_type == quest_type and not quest.is_completed:
