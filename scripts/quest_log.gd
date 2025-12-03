@@ -7,12 +7,18 @@ extends Control
 func _ready() -> void:
 	# Connect to quest manager signals
 	if QuestManager:
-		QuestManager.quests_changed.connect(_refresh_quests)
+		QuestManager.quests_changed.connect(_on_quests_changed)
 		QuestManager.quest_progress_updated.connect(_on_quest_progress_updated)
 		QuestManager.quest_completed.connect(_on_quest_completed)
 
 	# Initial display
 	_refresh_quests()
+
+## Called when quests change - only refresh if it's for local player
+func _on_quests_changed(player_id: int) -> void:
+	var local_player_id = multiplayer.get_unique_id()
+	if player_id == local_player_id:
+		_refresh_quests()
 
 func _refresh_quests() -> void:
 	if not quest_list:
@@ -22,8 +28,9 @@ func _refresh_quests() -> void:
 	for child in quest_list.get_children():
 		child.queue_free()
 
-	# Get active quests
-	var quests = QuestManager.get_active_quests() if QuestManager else []
+	# Get active quests for the local player
+	var local_player_id = multiplayer.get_unique_id()
+	var quests = QuestManager.get_active_quests(local_player_id) if QuestManager else []
 
 	# Create UI for each quest
 	for quest in quests:
@@ -70,9 +77,14 @@ func _create_quest_entry(quest: QuestData) -> void:
 
 	quest_list.add_child(quest_container)
 
-func _on_quest_progress_updated(quest_id: String) -> void:
+func _on_quest_progress_updated(quest_id: String, player_id: int) -> void:
+	# Only update if this is for the local player
+	var local_player_id = multiplayer.get_unique_id()
+	if player_id != local_player_id:
+		return
+
 	# Find and update the progress label for this quest
-	var quest = QuestManager.get_quest(quest_id) if QuestManager else null
+	var quest = QuestManager.get_quest(quest_id, player_id) if QuestManager else null
 	if not quest:
 		return
 
@@ -90,6 +102,9 @@ func _on_quest_progress_updated(quest_id: String) -> void:
 			if title_label:
 				title_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3))
 
-func _on_quest_completed(quest_id: String) -> void:
-	print("Quest UI: Quest completed! ", quest_id)
+func _on_quest_completed(quest_id: String, player_id: int) -> void:
+	# Only show completion message if this is for the local player
+	var local_player_id = multiplayer.get_unique_id()
+	if player_id == local_player_id:
+		print("Quest UI: Quest completed! ", quest_id)
 	# The progress update will handle the visual changes

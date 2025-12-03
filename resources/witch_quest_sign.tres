@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="SignData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SignData" load_steps=2 format=3 uid="uid://h8ibysf102up"]
 
-[ext_resource type="Script" path="res://scripts/sign_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://b7qw8yap2nk4m" path="res://scripts/sign_data.gd" id="1"]
 
 [resource]
 script = ExtResource("1")

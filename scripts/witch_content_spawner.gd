@@ -36,6 +36,8 @@ func _on_handshake_complete() -> void:
 				_spawn_witch_content()
 				break
 
+var obelisk_target_constellation: int = -1
+
 func _spawn_witch_content() -> void:
 	if has_spawned:
 		print("[WitchContentSpawner] Already spawned, skipping...")
@@ -44,6 +46,33 @@ func _spawn_witch_content() -> void:
 	print("[WitchContentSpawner] Starting spawn process...")
 	has_spawned = true
 
+	# Server spawns the content and syncs to all clients
+	if multiplayer.is_server():
+		# Pick constellation target on server
+		var constellation_manager = get_parent().get_node_or_null("ConstellationManager")
+		if constellation_manager and constellation_manager.constellations.size() > 0:
+			obelisk_target_constellation = randi() % constellation_manager.constellations.size()
+			print("[WitchContentSpawner] Server selected constellation: ", obelisk_target_constellation)
+
+		_spawn_content_on_server()
+		# Tell all clients to spawn with the same constellation target
+		rpc("_spawn_content_on_client", obelisk_target_constellation)
+
+@rpc("authority", "call_remote", "reliable")
+func _spawn_content_on_client(target_constellation: int) -> void:
+	# Clients receive this RPC and spawn the content locally with same constellation target
+	if has_spawned:
+		return
+	has_spawned = true
+	obelisk_target_constellation = target_constellation
+	print("[WitchContentSpawner] Client received constellation: ", target_constellation)
+	_do_spawn()
+
+func _spawn_content_on_server() -> void:
+	# Server spawns locally
+	_do_spawn()
+
+func _do_spawn() -> void:
 	# Get the map node (parent is the world node, map is a child of it)
 	var map_node = get_parent().get_node_or_null("map")
 	if not map_node:
@@ -72,6 +101,11 @@ func _spawn_witch_content() -> void:
 	if obelisk_scene:
 		spawned_obelisk = obelisk_scene.instantiate()
 		if spawned_obelisk:
+			# Set target constellation (synced from server)
+			if obelisk_target_constellation >= 0:
+				spawned_obelisk.target_constellation_index = obelisk_target_constellation
+				print("[WitchContentSpawner] Set obelisk constellation to: ", obelisk_target_constellation)
+
 			# Add to scene first, then set position
 			map_node.add_child(spawned_obelisk)
 			spawned_obelisk.global_position = obelisk_spawn_position

@@ -32,15 +32,17 @@ func _ready() -> void:
 	# Randomize constellation positions
 	randomize_constellations()
 
-	# Generate random background stars
-	_generate_background_stars()
+	# Only initialize on server immediately (clients wait for RPC)
+	if multiplayer.is_server():
+		# Generate random background stars
+		_generate_background_stars()
 
-	# Update shader with constellation data
-	update_shader_uniforms()
+		# Update shader with constellation data
+		update_shader_uniforms()
 
-	# Draw all constellation stars
-	_draw_all_constellation_stars()
-	_draw_background_stars()
+		# Draw all constellation stars
+		_draw_all_constellation_stars()
+		_draw_background_stars()
 
 func _setup_line_renderer() -> void:
 	constellation_lines = MeshInstance3D.new()
@@ -57,8 +59,33 @@ func _setup_line_renderer() -> void:
 	constellation_lines.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func randomize_constellations() -> void:
+	# Use seeded random so server and clients get same results
+	if multiplayer.is_server():
+		# Server generates with random seed and syncs to clients
+		var random_seed = randi()
+		_do_randomize_constellations(random_seed)
+		rpc("_sync_constellation_positions", random_seed)
+	else:
+		# Clients wait for server to send seed
+		pass
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_constellation_positions(random_seed: int) -> void:
+	# Clients receive seed from server and generate same positions
+	_do_randomize_constellations(random_seed)
+
+	# Now that positions are set, update everything that depends on them
+	_generate_background_stars()
+	update_shader_uniforms()
+	_draw_all_constellation_stars()
+	_draw_background_stars()
+
+func _do_randomize_constellations(random_seed: int) -> void:
 	constellation_positions.clear()
 	constellation_highlights.clear()
+
+	# Use the provided seed for reproducible randomization
+	seed(random_seed)
 
 	var min_separation = 0.8  # Minimum distance between constellation centers (on unit sphere)
 	var max_attempts = 100  # Max attempts per constellation to find valid position

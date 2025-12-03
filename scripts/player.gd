@@ -93,6 +93,8 @@ const BOW_DAMAGE := 12.0
 
 # Arrow scene for visual projectiles
 var arrow_scene: PackedScene = preload("res://scenes/arrow.tscn")
+# Fireball scene for staff attacks
+var fireball_scene: PackedScene = preload("res://scenes/fireball.tscn")
 
 # Debug line for bow attacks
 var debug_line: MeshInstance3D = null
@@ -185,7 +187,10 @@ func _ready() -> void:
 	call_deferred("_setup_camera")
 
 func _give_starting_astrolabe() -> void:
-	# Give astrolabe to witch at game start
+	# Give astrolabe to witch at game start (only on server to avoid duplicates)
+	if not multiplayer.is_server():
+		return
+
 	if InventoryManager:
 		InventoryManager.add_item(player_id, "astrolabe", 1)
 		print("Gave astrolabe to Witch player ", player_id)
@@ -644,29 +649,21 @@ func _perform_staff_aoe_attack() -> void:
 	if animation_player and animation_player.has_animation("attack"):
 		animation_player.play("attack")
 
-	# Find Area3D in aoe_indicator
+	# Get target position from aoe_indicator
+	var target_pos = Vector3.ZERO
 	if aoe_indicator:
-		var area = aoe_indicator.get_node_or_null("Area3D")
-		if area:
-			var bodies = area.get_overlapping_bodies()
-			print("[DEBUG] AoE bodies found: ", bodies)
-			for body in bodies:
-				if body.has_method("take_damage"):
-					var body_name = ""
-					var body_peer_id = 0
-					if body.get("player_id") != null:
-						body_peer_id = body.player_id
-						body_name = "Player_" + str(body_peer_id)
-					else:
-						body_name = body.name
-					if multiplayer.is_server():
-						var damage = equipped_weapon_data.damage if equipped_weapon_data else 20.0
-						body.take_damage(damage, player_id)
-					else:
-						var network_manager = NetworkManager
-						if network_manager:
-							var damage = equipped_weapon_data.damage if equipped_weapon_data else 20.0
-							network_manager.rpc_id(1, "process_damage_request", player_id, body_name, body_peer_id, damage)
+		target_pos = aoe_indicator.global_position
+	else:
+		# Fallback: position in front of player
+		target_pos = global_position + (-global_transform.basis.z * 5.0)
+
+	# Spawn fireball from player position (chest height) to target
+	var fireball_start = global_position + Vector3(0, 1.5, 0)
+	_spawn_fireball(fireball_start, target_pos)
+
+	# Sync fireball spawn to other clients
+	if multiplayer.multiplayer_peer != null:
+		rpc("_sync_fireball_spawn", fireball_start, target_pos)
 
 	await get_tree().create_timer(AUTO_ATTACK_COOLDOWN).timeout
 	auto_attack_active = false
@@ -971,6 +968,35 @@ func _sync_arrow_spawn(arrow_start: Vector3, direction: Vector3, arrow_target_po
 	if body_path != null:
 		target_body = get_node_or_null(body_path)
 	_spawn_arrow(arrow_start, direction, arrow_target_position, target_body, hit_success)
+
+# ----------------------------
+# Fireball attack helpers
+# ----------------------------
+
+## Spawn a fireball that travels in an arc to the target position
+func _spawn_fireball(from: Vector3, to: Vector3) -> void:
+	if not fireball_scene:
+		return
+
+	var fireball = fireball_scene.instantiate()
+	get_tree().current_scene.add_child(fireball)
+
+	# Set fireball trajectory
+	if fireball.has_method("set_target_data"):
+		fireball.set_target_data(from, to, 1.5)  # 1.5 second travel time
+
+	# Set damage data
+	var damage = 20.0
+	if equipped_weapon_data:
+		damage = equipped_weapon_data.damage
+
+	if fireball.has_method("set_damage_data"):
+		fireball.set_damage_data(damage, player_id)
+
+## RPC to sync fireball spawns across all clients
+@rpc("any_peer", "call_remote", "reliable")
+func _sync_fireball_spawn(from: Vector3, to: Vector3) -> void:
+	_spawn_fireball(from, to)
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open
@@ -1467,7 +1493,7 @@ func _start_reading_book() -> void:
 
 	# Track quest progress for reading the book
 	if QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1)
+		QuestManager.add_progress_by_type(QuestData.QuestType.READ_BOOK, 1, player_id)
 
 	print("Started reading book: ", equipped_item_data.item_name)
 

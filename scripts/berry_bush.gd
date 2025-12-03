@@ -166,7 +166,7 @@ func _complete_harvest() -> void:
 		# Track quest progress for berry collection (only for the host if they're the harvester)
 		var local_player_id = multiplayer.get_unique_id()
 		if player_id == local_player_id and QuestManager:
-			QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_per_harvest)
+			QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_per_harvest, player_id)
 
 		# Play success sound (test audio system)
 		_play_pickup_sound()
@@ -250,7 +250,7 @@ func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
 	# Track quest progress only for the player who harvested
 	var local_player_id = multiplayer.get_unique_id()
 	if harvester_id == local_player_id and QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_count)
+		QuestManager.add_progress_by_type(QuestData.QuestType.COLLECT_BERRIES, berries_count, harvester_id)
 
 	# Hide UI for local player
 	if HarvestUIManager:

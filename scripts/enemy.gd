@@ -318,10 +318,9 @@ func die() -> void:
 
 	print("Enemy died! Killed by player: ", last_attacker_id)
 
-	# Track quest progress for the host (if they killed it)
-	var local_player_id = multiplayer.get_unique_id()
-	if last_attacker_id == local_player_id and QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1)
+	# Track quest progress for the player who killed it
+	if last_attacker_id > 0 and QuestManager:
+		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1, last_attacker_id)
 
 	# Broadcast death to all clients with the attacker ID
 	rpc("sync_enemy_death", last_attacker_id)
@@ -332,6 +331,6 @@ func sync_enemy_death(attacker_id: int) -> void:
 	# Track quest progress only for the player who killed this enemy
 	var local_player_id = multiplayer.get_unique_id()
 	if attacker_id == local_player_id and QuestManager:
-		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1)
+		QuestManager.add_progress_by_type(QuestData.QuestType.KILL_ENEMIES, 1, attacker_id)
 
 	queue_free()

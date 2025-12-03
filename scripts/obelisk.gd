@@ -18,24 +18,9 @@ func _ready() -> void:
 	if not constellation_manager:
 		print("[Obelisk] ERROR: Could not find ConstellationManager!")
 
-	# If target not set, choose a random constellation
-	if target_constellation_index < 0:
-		call_deferred("_randomize_target_constellation")
-	else:
+	# Wait for target to be set by spawner (server will assign it)
+	if target_constellation_index >= 0:
 		call_deferred("_align_to_constellation")
-
-func _randomize_target_constellation() -> void:
-	if not constellation_manager:
-		print("[Obelisk] ERROR: No constellation manager for randomization")
-		return
-
-	var num_constellations = constellation_manager.constellations.size()
-	if num_constellations > 0:
-		target_constellation_index = randi() % num_constellations
-		print("[Obelisk] Selected constellation ", target_constellation_index)
-		_align_to_constellation()
-	else:
-		print("[Obelisk] ERROR: No constellations available")
 
 func _align_to_constellation() -> void:
 	if not constellation_manager or target_constellation_index < 0:
@@ -71,8 +56,8 @@ func _align_to_constellation() -> void:
 func interact(player: Node) -> void:
 	super.interact(player)
 
-	# Only process on local player
-	if not player.is_local_player:
+	# Only process on server (clients send request via RPC)
+	if not multiplayer.is_server():
 		return
 
 	# Check if player is witch
@@ -86,10 +71,13 @@ func interact(player: Node) -> void:
 		print("[Obelisk] ERROR: Could not find QuestManager")
 		return
 
-	# Complete the quest
-	var quest = QuestManager.get_quest("find_obelisk")
+	# Complete the quest for the witch player
+	var witch_player_id = player.get("player_id")
+	var quest = QuestManager.get_quest("find_obelisk", witch_player_id)
+	print("[Obelisk] Quest lookup result: ", quest, " is_completed=", quest.is_completed if quest else "N/A")
 	if quest and not quest.is_completed:
-		QuestManager.add_quest_progress("find_obelisk", 1)
+		print("[Obelisk] Adding quest progress...")
+		QuestManager.add_quest_progress("find_obelisk", 1, witch_player_id)
 		print("[Obelisk] Quest completed! The obelisk reveals its secrets to the witch.")
 
 		# Optional: Show which constellation it points to
@@ -97,4 +85,7 @@ func interact(player: Node) -> void:
 			var constellation_name = constellation_manager.get_constellation_name(target_constellation_index)
 			print("[Obelisk] The obelisk points to: ", constellation_name)
 	else:
-		print("[Obelisk] You've already discovered this obelisk's secrets.")
+		if not quest:
+			print("[Obelisk] Quest not found in QuestManager!")
+		else:
+			print("[Obelisk] You've already discovered this obelisk's secrets.")

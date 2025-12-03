@@ -1,4 +1,4 @@
-[gd_scene load_steps=46 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=45 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
 [ext_resource type="Script" uid="uid://krhubcp5rbah" path="res://scripts/main.gd" id="1_pm3ni"]
@@ -34,8 +34,7 @@
 [ext_resource type="Resource" uid="uid://dmr66p7lpu8hw" path="res://resources/constellations/warrior_constellation.tres" id="30_dgi5k"]
 [ext_resource type="Resource" path="res://resources/constellations/dragon_constellation.tres" id="31_5q0nq"]
 [ext_resource type="Resource" path="res://resources/constellations/tree_constellation.tres" id="32_dgi5k"]
-[ext_resource type="Script" path="res://scripts/quest_manager.gd" id="33_quest_manager"]
-[ext_resource type="Script" path="res://scripts/witch_content_spawner.gd" id="34_witch_spawner"]
+[ext_resource type="Script" uid="uid://dv5880ryl7vjo" path="res://scripts/witch_content_spawner.gd" id="34_witch_spawner"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_qkpxi"]
 panorama = ExtResource("2_tel4y")
@@ -81,7 +80,7 @@ shader_parameter/twinkle_speed = 0.5
 shader_parameter/sky_color_top = Vector3(0.02, 0.02, 0.08)
 shader_parameter/sky_color_horizon = Vector3(0.1, 0.05, 0.15)
 
-[node name="world2" type="Node3D" unique_id=238736076]
+[node name="world5" type="Node3D" unique_id=238736076]
 script = ExtResource("1_pm3ni")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=635195609]
@@ -213,7 +212,5 @@ script = ExtResource("26_fv21b")
 constellations = Array[ExtResource("27_tel4y")]([ExtResource("28_qkpxi"), ExtResource("29_5q0nq"), ExtResource("30_dgi5k"), ExtResource("31_5q0nq"), ExtResource("32_dgi5k")])
 sky_material = SubResource("ShaderMaterial_2wyq8")
 
-[node name="WitchContentSpawner" type="Node" parent="."]
+[node name="WitchContentSpawner" type="Node" parent="." unique_id=208804233]
 script = ExtResource("34_witch_spawner")
-sign_spawn_position = Vector3(0, 0, 5)
-obelisk_spawn_position = Vector3(10, 0, 10)

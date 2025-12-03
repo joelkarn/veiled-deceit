@@ -534,6 +534,23 @@ func request_start_harvest(player_id: int, interactable_path: NodePath) -> void:
 	if interactable.has_method("start_harvest"):
 		interactable.start_harvest(player)
 
+# Clients send quest addition requests to host
+@rpc("any_peer", "call_local", "reliable")
+func request_add_quest(quest_id: String, player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	if is_shutting_down:
+		return
+
+	print("[NetworkManager] Server received quest addition request: ", quest_id, " for player ", player_id)
+
+	# Add quest on server for specific player
+	if QuestManager and QuestManager.has_method("add_quest_by_id"):
+		QuestManager.add_quest_by_id(quest_id, player_id)
+	else:
+		print("[NetworkManager] ERROR: Could not find QuestManager")
+
 # Clients send harvest cancel requests to host
 @rpc("any_peer", "call_local", "reliable")
 func request_cancel_harvest(player_id: int) -> void:
