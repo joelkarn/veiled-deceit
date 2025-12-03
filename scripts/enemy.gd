@@ -327,7 +327,7 @@ func die() -> void:
 	queue_free()
 
 @rpc("authority", "call_remote", "reliable")
-func sync_enemy_death(attacker_id: int) -> void:
+func sync_enemy_death(_attacker_id: int) -> void:
 	# Quest progress is already tracked on server and synced via QuestManager RPC
 	# No need to track here on client - just handle death
 	queue_free()

@@ -32,8 +32,8 @@
 [ext_resource type="Resource" uid="uid://bgpktejbxwlc7" path="res://resources/constellations/hunter_constellation.tres" id="28_qkpxi"]
 [ext_resource type="Resource" uid="uid://tv08h1vbbjm3" path="res://resources/constellations/mystic_constellation.tres" id="29_5q0nq"]
 [ext_resource type="Resource" uid="uid://dmr66p7lpu8hw" path="res://resources/constellations/warrior_constellation.tres" id="30_dgi5k"]
-[ext_resource type="Resource" path="res://resources/constellations/dragon_constellation.tres" id="31_5q0nq"]
-[ext_resource type="Resource" path="res://resources/constellations/tree_constellation.tres" id="32_dgi5k"]
+[ext_resource type="Resource" uid="uid://wm75vau280r8" path="res://resources/constellations/dragon_constellation.tres" id="31_5q0nq"]
+[ext_resource type="Resource" uid="uid://de42ebjaatqk3" path="res://resources/constellations/tree_constellation.tres" id="32_dgi5k"]
 [ext_resource type="Script" uid="uid://dv5880ryl7vjo" path="res://scripts/witch_content_spawner.gd" id="34_witch_spawner"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_qkpxi"]

@@ -31,13 +31,13 @@ func _find_berry_objects() -> void:
 	_find_berries_recursive(berry_bush_model)
 
 
-func _find_node_by_name(root: Node, name: String) -> Node:
+func _find_node_by_name(root: Node, node_name: String) -> Node:
 	"""Find a node by name recursively"""
-	if root.name == name:
+	if root.name == node_name:
 		return root
 
 	for child in root.get_children():
-		var found = _find_node_by_name(child, name)
+		var found = _find_node_by_name(child, node_name)
 		if found:
 			return found
 
@@ -244,7 +244,7 @@ func sync_harvest_cancelled() -> void:
 		HarvestUIManager.cancel_harvest_ui()
 
 @rpc("authority", "call_remote", "reliable")
-func sync_harvest_completed(harvester_id: int, berries_count: int) -> void:
+func sync_harvest_completed(_harvester_id: int, _berries_count: int) -> void:
 	is_being_harvested = false
 	harvest_progress = 0.0
 

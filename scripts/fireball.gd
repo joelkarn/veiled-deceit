@@ -4,6 +4,7 @@ extends Node3D
 class_name Fireball
 
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var trail_particles: GPUParticles3D = $TrailParticles
 
 var start_position: Vector3 = Vector3.ZERO
 var target_position: Vector3 = Vector3.ZERO
@@ -29,6 +30,7 @@ func set_damage_data(dmg: float, shooter_id: int) -> void:
 
 func _ready() -> void:
 	set_physics_process(true)
+	_setup_trail_particles()
 	# Safety cleanup after a bit longer than travel time
 	var cleanup_timer = Timer.new()
 	cleanup_timer.wait_time = travel_time + 0.5
@@ -44,26 +46,26 @@ func _on_cleanup_timeout() -> void:
 func _physics_process(delta: float) -> void:
 	if has_exploded:
 		return
-	
+
 	current_time += delta
 	var t = current_time / travel_time
-	
+
 	if t >= 1.0:
 		# Reached target - explode
 		global_position = target_position
 		_explode()
 		return
-	
+
 	# Calculate position along arc using quadratic bezier curve
 	# Start -> Peak -> End
 	var horizontal_pos = start_position.lerp(target_position, t)
-	
+
 	# Add vertical arc (parabola)
 	# Use sin for smooth arc that peaks in the middle
 	var arc_offset = sin(t * PI) * arc_height
-	
+
 	global_position = horizontal_pos + Vector3(0, arc_offset, 0)
-	
+
 	# Rotate fireball to face direction of travel
 	var direction = (target_position - start_position).normalized()
 	if direction.length() > 0.01:
@@ -72,17 +74,21 @@ func _physics_process(delta: float) -> void:
 func _explode() -> void:
 	if has_exploded:
 		return
-	
+
 	has_exploded = true
 	set_physics_process(false)
-	
+
+	# Stop trail particles
+	if trail_particles:
+		trail_particles.emitting = false
+
 	# Hide the fireball mesh immediately
 	if mesh_instance:
 		mesh_instance.visible = false
-	
+
 	# Create explosion particles
 	_create_explosion_particles()
-	
+
 	# Deal damage to all entities in radius
 	var space_state = get_world_3d().direct_space_state
 	var query = PhysicsShapeQueryParameters3D.new()
@@ -93,9 +99,9 @@ func _explode() -> void:
 	query.collision_mask = 2  # Layer 2 = players and enemies
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
-	
+
 	var results = space_state.intersect_shape(query)
-	
+
 	# Process damage on server or send to server
 	if multiplayer.is_server():
 		for result in results:
@@ -112,15 +118,15 @@ func _explode() -> void:
 				if body.has_method("take_damage"):
 					var body_name = ""
 					var body_peer_id = 0
-					
+
 					if body.get("player_id") != null:
 						body_peer_id = body.player_id
 						body_name = "Player_" + str(body_peer_id)
 					else:
 						body_name = body.name
-					
+
 					network_manager.rpc_id(1, "process_damage_request", attacker_id, body_name, body_peer_id, damage)
-	
+
 	# Wait for particles to finish before cleanup
 	await get_tree().create_timer(1.0).timeout
 	queue_free()
@@ -129,58 +135,58 @@ func _create_explosion_particles() -> void:
 	# Create GPU particles for performance
 	var particles = GPUParticles3D.new()
 	add_child(particles)
-	
+
 	# Particle settings
 	particles.emitting = true
 	particles.one_shot = true
 	particles.amount = 50
 	particles.lifetime = 0.8
 	particles.explosiveness = 1.0  # All particles spawn at once
-	
+
 	# Create particle material
 	var particle_material = ParticleProcessMaterial.new()
-	
+
 	# Emission shape - sphere burst
 	particle_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 	particle_material.emission_sphere_radius = 0.2
-	
+
 	# Direction - radial explosion
 	particle_material.direction = Vector3(0, 1, 0)
 	particle_material.spread = 180.0
 	particle_material.initial_velocity_min = 3.0
 	particle_material.initial_velocity_max = 6.0
-	
+
 	# Gravity
 	particle_material.gravity = Vector3(0, -9.8, 0)
-	
+
 	# Size
 	particle_material.scale_min = 0.2
 	particle_material.scale_max = 0.5
-	
+
 	# Color - orange to red to black (fade out)
 	var gradient = Gradient.new()
 	gradient.add_point(0.0, Color(1.0, 0.8, 0.2, 1.0))  # Bright yellow-orange
 	gradient.add_point(0.3, Color(1.0, 0.4, 0.0, 1.0))  # Orange
 	gradient.add_point(0.6, Color(0.8, 0.1, 0.0, 0.8))  # Dark red
 	gradient.add_point(1.0, Color(0.2, 0.0, 0.0, 0.0))  # Fade to transparent
-	
+
 	var gradient_texture = GradientTexture1D.new()
 	gradient_texture.gradient = gradient
 	particle_material.color_ramp = gradient_texture
-	
+
 	# Damping (particles slow down)
 	particle_material.damping_min = 2.0
 	particle_material.damping_max = 4.0
-	
+
 	particles.process_material = particle_material
-	
+
 	# Create mesh for particles (small spheres)
 	var particle_mesh = SphereMesh.new()
 	particle_mesh.radial_segments = 8
 	particle_mesh.rings = 4
 	particle_mesh.radius = 0.15
 	particle_mesh.height = 0.3
-	
+
 	# Create glowing material for particles
 	var particle_draw_material = StandardMaterial3D.new()
 	particle_draw_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -188,6 +194,75 @@ func _create_explosion_particles() -> void:
 	particle_draw_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	particle_draw_material.emission_enabled = true
 	particle_draw_material.emission_energy_multiplier = 2.0
-	
+
 	particle_mesh.material = particle_draw_material
 	particles.draw_pass_1 = particle_mesh
+
+func _setup_trail_particles() -> void:
+	if not trail_particles:
+		return
+
+	# Create particle material for the trail
+	var particle_material = ParticleProcessMaterial.new()
+
+	# Emission shape - emit from center
+	particle_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	particle_material.emission_sphere_radius = 0.1
+
+	# Direction - spread backwards slightly
+	particle_material.direction = Vector3(0, 0, 0)
+	particle_material.spread = 45.0
+	particle_material.initial_velocity_min = 0.5
+	particle_material.initial_velocity_max = 1.5
+
+	# Gravity - particles drift slightly
+	particle_material.gravity = Vector3(0, -2.0, 0)
+
+	# Size - start small, grow slightly
+	particle_material.scale_min = 0.1
+	particle_material.scale_max = 0.3
+	particle_material.scale_curve = _create_scale_curve()
+
+	# Color - fiery colors that fade
+	var gradient = Gradient.new()
+	gradient.add_point(0.0, Color(1.0, 1.0, 0.8, 1.0))  # Bright white-yellow core
+	gradient.add_point(0.2, Color(1.0, 0.7, 0.2, 1.0))  # Bright orange
+	gradient.add_point(0.5, Color(1.0, 0.3, 0.0, 0.8))  # Orange-red
+	gradient.add_point(0.8, Color(0.6, 0.1, 0.0, 0.4))  # Dark red
+	gradient.add_point(1.0, Color(0.2, 0.0, 0.0, 0.0))  # Fade to transparent
+
+	var gradient_texture = GradientTexture1D.new()
+	gradient_texture.gradient = gradient
+	particle_material.color_ramp = gradient_texture
+
+	# Damping - particles slow down quickly
+	particle_material.damping_min = 3.0
+	particle_material.damping_max = 5.0
+
+	trail_particles.process_material = particle_material
+
+	# Create mesh for trail particles
+	var particle_mesh = SphereMesh.new()
+	particle_mesh.radial_segments = 6
+	particle_mesh.rings = 3
+	particle_mesh.radius = 0.1
+	particle_mesh.height = 0.2
+
+	# Create glowing material for trail particles
+	var particle_draw_material = StandardMaterial3D.new()
+	particle_draw_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	particle_draw_material.vertex_color_use_as_albedo = true
+	particle_draw_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	particle_draw_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD  # Additive blending for glow
+	particle_draw_material.emission_enabled = true
+	particle_draw_material.emission_energy_multiplier = 1.5
+
+	particle_mesh.material = particle_draw_material
+	trail_particles.draw_pass_1 = particle_mesh
+
+func _create_scale_curve() -> Curve:
+	var curve = Curve.new()
+	curve.add_point(Vector2(0.0, 0.5))  # Start small
+	curve.add_point(Vector2(0.3, 1.0))  # Grow to full size
+	curve.add_point(Vector2(1.0, 0.2))  # Shrink at the end
+	return curve

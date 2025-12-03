@@ -19,3 +19,9 @@ script = ExtResource("1_fireball")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("SphereMesh_fireball")
 surface_material_override/0 = SubResource("StandardMaterial3D_fireball")
+
+[node name="TrailParticles" type="GPUParticles3D" parent="."]
+emitting = true
+amount = 30
+lifetime = 0.5
+visibility_aabb = AABB(-2, -2, -2, 4, 4, 4)
