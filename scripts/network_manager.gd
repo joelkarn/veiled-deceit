@@ -15,7 +15,7 @@ var peers_spawned: Dictionary = {} # {peer_id: true} - tracks who has spawned th
 
 # Character selection state
 var player_characters: Dictionary = {}  # {peer_id: character_name}
-var available_characters: Array[String] = ["Witch", "Hunter", "Knight"]
+var available_characters: Array[String] = ["Witch", "Hunter", "Knight", "Necromancer", "Priest"]
 var game_started: bool = false
 
 # Spawn points for players (5 locations)
@@ -705,6 +705,28 @@ func request_add_quest(quest_id: String, player_id: int) -> void:
 		QuestManager.add_quest_by_id(quest_id, player_id)
 	else:
 		print("[NetworkManager] ERROR: Could not find QuestManager")
+
+# Clients send item addition requests to host
+@rpc("any_peer", "call_local", "reliable")
+func request_give_item(item_id: String, player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	if is_shutting_down:
+		return
+
+	print("[NetworkManager] Server received item addition request: ", item_id, " for player ", player_id)
+
+	# Add item on server for specific player
+	if InventoryManager and InventoryManager.has_method("add_item_to_player"):
+		var item_resource = load("res://resources/items/" + item_id + ".tres")
+		if item_resource:
+			InventoryManager.add_item_to_player(item_resource, 1, player_id)
+			print("[NetworkManager] Gave ", item_id, " to player ", player_id)
+		else:
+			print("[NetworkManager] ERROR: Could not load item: ", item_id)
+	else:
+		print("[NetworkManager] ERROR: Could not find InventoryManager")
 
 # Clients send book read events to host for quest tracking
 @rpc("any_peer", "call_remote", "reliable")

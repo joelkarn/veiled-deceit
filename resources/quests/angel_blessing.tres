@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "angel_blessing"
+quest_name = "Angel's Blessing"
+description = "The angel has blessed you with a sacred quest. Defeat 10 enemies to prove your worth."
+goal = 10
+current_progress = 0
+is_completed = false
+quest_type = 1

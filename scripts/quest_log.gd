@@ -66,6 +66,7 @@ func _create_quest_entry(quest: QuestData) -> void:
 	progress_label.add_theme_font_size_override("font_size", 14)
 	if quest.is_completed:
 		progress_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3))
+		progress_label.text += " (Ready to turn in!)"  # Indicate it's ready
 	else:
 		progress_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 	quest_container.add_child(progress_label)

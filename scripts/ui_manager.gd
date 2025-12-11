@@ -5,6 +5,7 @@ signal menu_closed
 
 var is_menu_open := false
 var chest_ui: Control = null
+var angel_ui: Control = null
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -55,7 +56,7 @@ func close_menu() -> void:
 	menu_closed.emit()
 
 func is_menu_active() -> bool:
-	return is_menu_open or (chest_ui and chest_ui.visible)
+	return is_menu_open or (chest_ui and chest_ui.visible) or (angel_ui and angel_ui.visible)
 
 # Chest UI management
 func show_chest_ui(chest: Node, inventory: Array) -> void:
@@ -72,3 +73,10 @@ func show_chest_ui(chest: Node, inventory: Array) -> void:
 func update_chest_ui(inventory: Array) -> void:
 	if chest_ui and chest_ui.visible and chest_ui.has_method("update_chest_inventory"):
 		chest_ui.update_chest_inventory(inventory)
+
+# Angel UI management
+func register_angel_ui(ui: Control) -> void:
+	angel_ui = ui
+
+func is_angel_ui_open() -> bool:
+	return angel_ui and angel_ui.visible

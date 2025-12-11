@@ -1,0 +1,10 @@
+# Material file for Spider_00.obj
+# Generated for Godot Engine
+
+newmtl Origins_01
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 2
+map_Kd ../../textures/spider/Origins_01.png

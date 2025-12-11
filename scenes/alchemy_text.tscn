@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8xh9k3m2n4p1"]
+
+[ext_resource type="Script" path="res://scripts/alchemy_text_sprite.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://assets/fonts/Biro_Script_reduced.ttf" id="2_font"]
+
+[node name="AlchemyText" type="Label3D"]
+modulate = Color(1, 1, 1, 1)
+pixel_size = 0.003
+billboard = 0
+shaded = true
+double_sided = false
+no_depth_test = false
+fixed_size = false
+alpha_cut = 0
+texture_filter = 0
+text = "ALCHEMY TEXT"
+font = ExtResource("2_font")
+font_size = 128
+outline_size = 12
+outline_modulate = Color(0, 0, 0, 0.7)
+script = ExtResource("1_script")
+randomize_text = true
+random_rotation = true

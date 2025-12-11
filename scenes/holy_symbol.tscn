@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dwt7otrytbv63"]
+
+[ext_resource type="Script" uid="uid://b78nil3atxt4m" path="res://scripts/holy_symbol.gd" id="1_symbol"]
+
+[node name="HolySymbol" type="MeshInstance3D"]
+script = ExtResource("1_symbol")

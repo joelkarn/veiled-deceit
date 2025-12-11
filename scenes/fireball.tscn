@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://c3xk7p8mjr2tn"]
 
-[ext_resource type="Script" path="res://scripts/fireball.gd" id="1_fireball"]
+[ext_resource type="Script" uid="uid://c8xk7p8mjr2tn" path="res://scripts/fireball.gd" id="1_fireball"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_fireball"]
 radius = 0.3
@@ -9,19 +9,15 @@ height = 0.6
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fireball"]
 shading_mode = 0
 albedo_color = Color(1, 0.3, 0, 1)
-emission_enabled = true
-emission = Color(1, 0.5, 0, 1)
-emission_energy_multiplier = 2.0
 
-[node name="Fireball" type="Node3D"]
+[node name="Fireball2" type="Node3D" unique_id=601117554]
 script = ExtResource("1_fireball")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=841384302]
 mesh = SubResource("SphereMesh_fireball")
 surface_material_override/0 = SubResource("StandardMaterial3D_fireball")
 
-[node name="TrailParticles" type="GPUParticles3D" parent="."]
-emitting = true
+[node name="TrailParticles" type="GPUParticles3D" parent="." unique_id=672400369]
 amount = 30
 lifetime = 0.5
 visibility_aabb = AABB(-2, -2, -2, 4, 4, 4)

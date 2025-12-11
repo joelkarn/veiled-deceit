@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/consumable_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+item_id = "torch"
+item_name = "Torch"
+description = "A burning torch that provides light in dark places. Equip it to see in the darkness."
+icon = null
+item_type = 1
+max_stack = 1
+is_equippable = true
+effect_type = 0
+effect_value = 0.0
+duration = 0.0

@@ -1,0 +1,267 @@
+[gd_scene load_steps=21 format=3 uid="uid://7rd3qnj46oq8"]
+
+[ext_resource type="Script" uid="uid://c0aqbl3p3sqpd" path="res://scripts/cave.gd" id="1_cave"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/alchemy_table.gltf" id="2_alchemy_table"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/cupboard.gltf" id="3_cupboard"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/crate.gltf" id="4_crate"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/column_base.gltf" id="5_column_base"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/torch_holder.gltf" id="6_torch_holder"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/torch_handle.gltf" id="7_torch_handle"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/torch_head.gltf" id="8_torch_head"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/potion_small_glass.gltf" id="9_potion_glass"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/potion_small_cap.gltf" id="10_potion_cap"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/potion_small_paper.gltf" id="11_potion_paper"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/jar_glass.gltf" id="12_jar_glass"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/jar_lid.gltf" id="13_jar_lid"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/chalice_silver.gltf" id="14_chalice"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/alchemy_glass.gltf" id="15_alchemy_glass"]
+[ext_resource type="PackedScene" path="res://assets/models/alchemy_lab/alchemy_metal.gltf" id="16_alchemy_metal"]
+
+[sub_resource type="Environment" id="Environment_cave"]
+background_mode = 1
+background_color = Color(0.05, 0.05, 0.1, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.1, 0.1, 0.15, 1)
+ambient_light_energy = 0.15
+tonemap_mode = 2
+glow_enabled = true
+fog_light_color = Color(0.1, 0.1, 0.15, 1)
+fog_density = 0.05
+volumetric_fog_density = 0.1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cave"]
+albedo_color = Color(0.2, 0.2, 0.25, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_table"]
+size = Vector3(1.5, 1, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cupboard"]
+size = Vector3(1.2, 1.2, 0.6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_crate"]
+size = Vector3(0.8, 0.8, 0.8)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_column"]
+height = 2.0
+radius = 0.25
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_darkness"]
+size = Vector3(28, 10, 28)
+
+[node name="Cave5" type="Node3D" unique_id=640986810]
+script = ExtResource("1_cave")
+
+[node name="CaveEnvironment" type="WorldEnvironment" parent="." unique_id=1545126802]
+environment = SubResource("Environment_cave")
+
+[node name="CaveStructure" type="Node3D" parent="." unique_id=1761456631]
+
+[node name="CaveFloor" type="CSGBox3D" parent="CaveStructure" unique_id=756055460]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, -1, -30)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(30, 2, 30)
+
+[node name="CaveWallNorth" type="CSGBox3D" parent="CaveStructure" unique_id=1665006608]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 5, -45)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(30, 12, 2)
+
+[node name="CaveWallSouth" type="CSGBox3D" parent="CaveStructure" unique_id=2045777649]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 5, -15)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(30, 12, 2)
+
+[node name="CaveWallWest" type="CSGBox3D" parent="CaveStructure" unique_id=2122816621]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 5, -30)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(2, 12, 30)
+
+[node name="CaveWallEast" type="Node3D" parent="CaveStructure" unique_id=297186353]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 5, -30)
+
+[node name="WallTop" type="CSGBox3D" parent="CaveStructure/CaveWallEast" unique_id=1234567890]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 0)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(2, 5, 30)
+
+[node name="WallBottom" type="CSGBox3D" parent="CaveStructure/CaveWallEast" unique_id=1234567891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4, 0)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(2, 2, 30)
+
+[node name="WallLeft" type="CSGBox3D" parent="CaveStructure/CaveWallEast" unique_id=1234567892]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(2, 12, 6)
+
+[node name="WallRight" type="CSGBox3D" parent="CaveStructure/CaveWallEast" unique_id=1234567893]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 12)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(2, 12, 6)
+
+[node name="CaveCeiling" type="CSGBox3D" parent="CaveStructure" unique_id=328666787]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 11, -30)
+material_override = SubResource("StandardMaterial3D_cave")
+use_collision = true
+size = Vector3(30, 2, 30)
+
+[node name="HolySymbols" type="Node3D" parent="." unique_id=888888888]
+
+[node name="Decorations" type="Node3D" parent="."]
+
+[node name="AlchemyTable" type="StaticBody3D" parent="Decorations"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -35, 0, -35)
+
+[node name="alchemy_table" parent="Decorations/AlchemyTable" instance=ExtResource("2_alchemy_table")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Decorations/AlchemyTable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_table")
+
+[node name="Cupboard" type="StaticBody3D" parent="Decorations"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -25, 0, -43)
+
+[node name="cupboard" parent="Decorations/Cupboard" instance=ExtResource("3_cupboard")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Decorations/Cupboard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_cupboard")
+
+[node name="Crate1" type="StaticBody3D" parent="Decorations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, -25)
+
+[node name="crate" parent="Decorations/Crate1" instance=ExtResource("4_crate")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Decorations/Crate1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("BoxShape3D_crate")
+
+[node name="Crate2" type="StaticBody3D" parent="Decorations"]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, -42, 0, -26)
+
+[node name="crate" parent="Decorations/Crate2" instance=ExtResource("4_crate")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Decorations/Crate2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("BoxShape3D_crate")
+
+[node name="ColumnBase1" type="StaticBody3D" parent="Decorations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -25)
+
+[node name="column_base" parent="Decorations/ColumnBase1" instance=ExtResource("5_column_base")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Decorations/ColumnBase1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CylinderShape3D_column")
+
+[node name="ColumnBase2" type="StaticBody3D" parent="Decorations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -35)
+
+[node name="column_base" parent="Decorations/ColumnBase2" instance=ExtResource("5_column_base")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Decorations/ColumnBase2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CylinderShape3D_column")
+
+[node name="TorchHolder1" type="Node3D" parent="Decorations"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -43, 3, -30)
+
+[node name="torch_holder" parent="Decorations/TorchHolder1" instance=ExtResource("6_torch_holder")]
+
+[node name="TorchHandle1" type="Node3D" parent="Decorations/TorchHolder1"]
+
+[node name="torch_handle" parent="Decorations/TorchHolder1/TorchHandle1" instance=ExtResource("7_torch_handle")]
+
+[node name="TorchHead1" type="OmniLight3D" parent="Decorations/TorchHolder1/TorchHandle1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+light_color = Color(1, 0.7, 0.4, 1)
+light_energy = 1.5
+omni_range = 8.0
+
+[node name="torch_head" parent="Decorations/TorchHolder1/TorchHandle1/TorchHead1" instance=ExtResource("8_torch_head")]
+
+[node name="TorchHolder2" type="Node3D" parent="Decorations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 3, -17)
+
+[node name="torch_holder" parent="Decorations/TorchHolder2" instance=ExtResource("6_torch_holder")]
+
+[node name="TorchHandle2" type="Node3D" parent="Decorations/TorchHolder2"]
+
+[node name="torch_handle" parent="Decorations/TorchHolder2/TorchHandle2" instance=ExtResource("7_torch_handle")]
+
+[node name="TorchHead2" type="OmniLight3D" parent="Decorations/TorchHolder2/TorchHandle2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+light_color = Color(1, 0.7, 0.4, 1)
+light_energy = 1.5
+omni_range = 8.0
+
+[node name="torch_head" parent="Decorations/TorchHolder2/TorchHandle2/TorchHead2" instance=ExtResource("8_torch_head")]
+
+[node name="SmallPotions" type="Node3D" parent="Decorations"]
+
+[node name="Potion1" type="Node3D" parent="Decorations/SmallPotions"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.5, 0.82, -35.3)
+
+[node name="potion_small_glass" parent="Decorations/SmallPotions/Potion1" instance=ExtResource("9_potion_glass")]
+
+[node name="Potion2" type="Node3D" parent="Decorations/SmallPotions"]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -35.2, 0.82, -35.5)
+
+[node name="potion_small_cap" parent="Decorations/SmallPotions/Potion2" instance=ExtResource("10_potion_cap")]
+
+[node name="Potion3" type="Node3D" parent="Decorations/SmallPotions"]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -35.8, 0.82, -34.8)
+
+[node name="potion_small_paper" parent="Decorations/SmallPotions/Potion3" instance=ExtResource("11_potion_paper")]
+
+[node name="Jars" type="Node3D" parent="Decorations"]
+
+[node name="Jar1" type="Node3D" parent="Decorations/Jars"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.5, 1.2, -43)
+
+[node name="jar_glass" parent="Decorations/Jars/Jar1" instance=ExtResource("12_jar_glass")]
+
+[node name="Jar2" type="Node3D" parent="Decorations/Jars"]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -26.5, 1.2, -43)
+
+[node name="jar_lid" parent="Decorations/Jars/Jar2" instance=ExtResource("13_jar_lid")]
+
+[node name="Chalice" type="Node3D" parent="Decorations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.5, 1.2, -43)
+
+[node name="chalice_silver" parent="Decorations/Chalice" instance=ExtResource("14_chalice")]
+
+[node name="AlchemyBottles" type="Node3D" parent="Decorations"]
+
+[node name="Glass1" type="Node3D" parent="Decorations/AlchemyBottles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.2, 0.82, -34.5)
+
+[node name="alchemy_glass" parent="Decorations/AlchemyBottles/Glass1" instance=ExtResource("15_alchemy_glass")]
+
+[node name="Metal1" type="Node3D" parent="Decorations/AlchemyBottles"]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, -35.5, 0.82, -34.2)
+
+[node name="alchemy_metal" parent="Decorations/AlchemyBottles/Metal1" instance=ExtResource("16_alchemy_metal")]
+
+[node name="DarknessArea" type="Area3D" parent="." unique_id=174791439]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 5, -30)
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DarknessArea" unique_id=1580522420]
+shape = SubResource("BoxShape3D_darkness")
+
+[node name="FaintLight" type="OmniLight3D" parent="." unique_id=1959297111]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 8, -30)
+light_color = Color(0.6, 0.6, 0.7, 1)
+light_energy = 0.2
+omni_range = 10.0
+omni_attenuation = 2.0

@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://d4n3y2yah3wlr"]
+
+[ext_resource type="PackedScene" uid="uid://c8n3y2x9h3wlq" path="res://scenes/spider.tscn" id="1_spider"]
+[ext_resource type="Script" uid="uid://cj1n0rmikpxw3" path="res://scripts/enemy_spawner.gd" id="2_spawner"]
+
+[node name="SpiderSpawner" type="Node3D"]
+script = ExtResource("2_spawner")
+enemy_scene = ExtResource("1_spider")
+spawn_interval = 8.0
+max_enemies = 5
+spawn_radius = 3.0

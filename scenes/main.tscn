@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3 uid="uid://cbjp648wga6gg"]
+[gd_scene load_steps=51 format=3 uid="uid://cbjp648wga6gg"]
 
 [ext_resource type="Texture2D" uid="uid://c5rvi1utlguu4" path="res://assets/textures/grids/Dark/texture_05.png" id="1_1be4y"]
 [ext_resource type="Script" uid="uid://krhubcp5rbah" path="res://scripts/main.gd" id="1_pm3ni"]
@@ -19,6 +19,8 @@
 [ext_resource type="PackedScene" uid="uid://ji1l6eoqhvra" path="res://scenes/ui/chest_ui.tscn" id="16_chest_ui"]
 [ext_resource type="PackedScene" path="res://scenes/enemy_spawner.tscn" id="17_enemy_spawner"]
 [ext_resource type="PackedScene" uid="uid://3hkiyk7o5olc" path="res://scenes/bow_pickup.tscn" id="18_bow_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/spider_spawner.tscn" id="18_spider_spawner"]
+[ext_resource type="PackedScene" uid="uid://7rd3qnj46oq8" path="res://scenes/cave.tscn" id="19_cave"]
 [ext_resource type="PackedScene" uid="uid://c3h13k6mrh6xk" path="res://scenes/ui/crosshair.tscn" id="19_crosshair"]
 [ext_resource type="PackedScene" uid="uid://dh8y4vg7n2pk6" path="res://scenes/book_pickup.tscn" id="20_book_pickup"]
 [ext_resource type="PackedScene" uid="uid://vsemw7rlb7n0" path="res://scenes/ui/book_ui.tscn" id="21_book_ui"]
@@ -26,6 +28,8 @@
 [ext_resource type="PackedScene" uid="uid://cb73228bx3det" path="res://scenes/staff_pickup.tscn" id="23_pm3ni"]
 [ext_resource type="PackedScene" uid="uid://qccp0oiaucmb" path="res://scenes/ui/sign_ui.tscn" id="23_sign_ui"]
 [ext_resource type="PackedScene" uid="uid://bcajlij5cylia" path="res://scenes/ui/quest_log.tscn" id="24_quest_log"]
+[ext_resource type="PackedScene" path="res://scenes/ui/angel_ui.tscn" id="25_angel_ui"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_ui.tscn" id="25_dialogue_ui"]
 [ext_resource type="PackedScene" uid="uid://bplikcq5c3o53" path="res://scenes/ui/constellation_ui.tscn" id="26_dgi5k"]
 [ext_resource type="Script" uid="uid://c31as2n6r2gs1" path="res://scripts/constellation_manager.gd" id="26_fv21b"]
 [ext_resource type="Script" uid="uid://ppsvqvjjr8n1" path="res://scripts/constellation_data.gd" id="27_tel4y"]
@@ -35,6 +39,8 @@
 [ext_resource type="Resource" uid="uid://wm75vau280r8" path="res://resources/constellations/dragon_constellation.tres" id="31_5q0nq"]
 [ext_resource type="Resource" uid="uid://de42ebjaatqk3" path="res://resources/constellations/tree_constellation.tres" id="32_dgi5k"]
 [ext_resource type="Script" uid="uid://dv5880ryl7vjo" path="res://scripts/witch_content_spawner.gd" id="34_witch_spawner"]
+[ext_resource type="Script" uid="uid://cy5jtiahhq1lo" path="res://scripts/hunter_content_spawner.gd" id="35_hunter_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/angel_npc.tscn" id="39_c6pm6"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_qkpxi"]
 panorama = ExtResource("2_tel4y")
@@ -80,7 +86,7 @@ shader_parameter/twinkle_speed = 0.5
 shader_parameter/sky_color_top = Vector3(0.02, 0.02, 0.08)
 shader_parameter/sky_color_horizon = Vector3(0.1, 0.05, 0.15)
 
-[node name="world5" type="Node3D" unique_id=238736076]
+[node name="world7" type="Node3D" unique_id=238736076]
 script = ExtResource("1_pm3ni")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=635195609]
@@ -145,8 +151,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
 [node name="EnemySpawner" parent="map" unique_id=235749264 instance=ExtResource("17_enemy_spawner")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.3654175, 0, -4.9104595)
 
+[node name="SpiderSpawner" parent="map" unique_id=678241814 instance=ExtResource("18_spider_spawner")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -8)
+
 [node name="SwordPickup" parent="map" unique_id=1925297795 instance=ExtResource("14_y6deb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5465631, 1.0236831, -0.053691864)
+
+[node name="Cave" parent="map" unique_id=1567351141 instance=ExtResource("19_cave")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.524737, -1.4628844, 5.3111873)
 
 [node name="UIManager" type="Node" parent="." unique_id=2032296841]
 script = ExtResource("7_ui")
@@ -197,6 +209,16 @@ layer = 13
 
 [node name="SignUI" parent="UILayers/SignUILayer" unique_id=916940984 instance=ExtResource("23_sign_ui")]
 
+[node name="DialogueUILayer" type="CanvasLayer" parent="UILayers" unique_id=1518528316]
+layer = 14
+
+[node name="DialogueUI" parent="UILayers/DialogueUILayer" unique_id=916940985 instance=ExtResource("25_dialogue_ui")]
+
+[node name="AngelUILayer" type="CanvasLayer" parent="UILayers" unique_id=1518528317]
+layer = 15
+
+[node name="AngelUI" parent="UILayers/AngelUILayer" unique_id=916940986 instance=ExtResource("25_angel_ui")]
+
 [node name="QuestLogLayer" type="CanvasLayer" parent="UILayers" unique_id=1684464114]
 layer = 2
 
@@ -214,3 +236,9 @@ sky_material = SubResource("ShaderMaterial_2wyq8")
 
 [node name="WitchContentSpawner" type="Node" parent="." unique_id=208804233]
 script = ExtResource("34_witch_spawner")
+
+[node name="HunterContentSpawner" type="Node" parent="." unique_id=662602154]
+script = ExtResource("35_hunter_spawner")
+
+[node name="AngelNPC" parent="." unique_id=1831851391 instance=ExtResource("39_c6pm6")]
+transform = Transform3D(-0.898947, 0, 0.43805736, 0, 1, 0, -0.43805736, 0, -0.898947, 0.90786505, 1.5833163, -8.1008625)

@@ -22,29 +22,19 @@ func _load_quest_database() -> void:
 	# In the future, you could scan a directory for .tres files
 	print("QuestManager: Quest database ready")
 
-## Initialize the three starter quests for a specific player
+## Initialize the starter quest for a specific player (talk to angel)
 func _initialize_starter_quests_for_player(player_id: int) -> void:
-	# Load the three quests from resources
-	var berries_quest = load("res://resources/quests/collect_berries.tres").duplicate(true)
-	var enemies_quest = load("res://resources/quests/kill_enemies.tres").duplicate(true)
-	var book_quest = load("res://resources/quests/read_book.tres").duplicate(true)
+	# Load the starter quest: talk to angel
+	var angel_quest = load("res://resources/quests/talk_to_angel.tres").duplicate(true)
 
 	if not player_quests.has(player_id):
 		player_quests[player_id] = []
 
-	if berries_quest:
-		player_quests[player_id].append(berries_quest)
-		quest_database[berries_quest.quest_id + "_" + str(player_id)] = berries_quest
+	if angel_quest:
+		player_quests[player_id].append(angel_quest)
+		quest_database[angel_quest.quest_id + "_" + str(player_id)] = angel_quest
 
-	if enemies_quest:
-		player_quests[player_id].append(enemies_quest)
-		quest_database[enemies_quest.quest_id + "_" + str(player_id)] = enemies_quest
-
-	if book_quest:
-		player_quests[player_id].append(book_quest)
-		quest_database[book_quest.quest_id + "_" + str(player_id)] = book_quest
-
-	print("QuestManager: Loaded ", player_quests[player_id].size(), " starter quests for player ", player_id)
+	print("QuestManager: Loaded starter quest for player ", player_id)
 	quests_changed.emit(player_id)
 
 ## Initialize quests when a player is added to the game
@@ -257,6 +247,30 @@ func _sync_quest_add(quest_id: String, player_id: int) -> void:
 	quests_changed.emit(player_id)
 
 	print("QuestManager: Synced quest '", quest.quest_name, "' from server for player ", player_id)
+
+## Remove a specific quest from a player
+func remove_quest(quest_id: String, player_id: int = -1) -> void:
+	if player_id == -1:
+		player_id = multiplayer.get_unique_id()
+
+	if not player_quests.has(player_id):
+		return
+
+	var full_quest_id = quest_id + "_" + str(player_id)
+
+	# Remove from database
+	if quest_database.has(full_quest_id):
+		quest_database.erase(full_quest_id)
+
+	# Remove from player's quest list
+	var quest_array = player_quests[player_id]
+	for i in range(quest_array.size() - 1, -1, -1):
+		if quest_array[i].quest_id == quest_id:
+			quest_array.remove_at(i)
+			break
+
+	print("QuestManager: Removed quest ", quest_id, " from player ", player_id)
+	quests_changed.emit(player_id)
 
 ## Reset all quests for a specific player (for testing)
 func reset_all_quests(player_id: int = -1) -> void:

@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3 uid="uid://torch_placed_scene"]
+
+[ext_resource type="Script" path="res://scripts/placed_torch.gd" id="1_torch"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_torch"]
+radius = 0.3
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_torch"]
+top_radius = 0.05
+bottom_radius = 0.08
+height = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_torch"]
+albedo_color = Color(0.4, 0.25, 0.1, 1)
+
+[node name="PlacedTorch" type="Area3D"]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("1_torch")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("CylinderShape3D_torch")
+
+[node name="TorchModel" type="Node3D" parent="."]
+
+[node name="Stick" type="MeshInstance3D" parent="TorchModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+mesh = SubResource("CylinderMesh_torch")
+surface_material_override/0 = SubResource("StandardMaterial3D_torch")
+
+[node name="Flame" type="CSGSphere3D" parent="TorchModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+radius = 0.15
+material_override = SubResource("StandardMaterial3D_torch")
+
+[node name="TorchLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+light_color = Color(1, 0.85, 0.6, 1)
+light_energy = 3.0
+omni_range = 20.0
+omni_attenuation = 0.8

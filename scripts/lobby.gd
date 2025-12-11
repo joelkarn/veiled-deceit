@@ -14,6 +14,8 @@ signal entered_character_select
 @onready var witch_button: Button = $Panel/CharacterView/VBoxContainer/CharacterButtons/WitchButton
 @onready var hunter_button: Button = $Panel/CharacterView/VBoxContainer/CharacterButtons/HunterButton
 @onready var knight_button: Button = $Panel/CharacterView/VBoxContainer/CharacterButtons/KnightButton
+@onready var necromancer_button: Button = $Panel/CharacterView/VBoxContainer/CharacterButtons/NecromancerButton
+@onready var priest_button: Button = $Panel/CharacterView/VBoxContainer/CharacterButtons/PriestButton
 @onready var player_list: Label = $Panel/CharacterView/VBoxContainer/PlayerList
 @onready var start_button: Button = $Panel/CharacterView/VBoxContainer/StartButton
 
@@ -37,6 +39,8 @@ func _ready() -> void:
 	witch_button.pressed.connect(func(): _on_character_selected("Witch"))
 	hunter_button.pressed.connect(func(): _on_character_selected("Hunter"))
 	knight_button.pressed.connect(func(): _on_character_selected("Knight"))
+	necromancer_button.pressed.connect(func(): _on_character_selected("Necromancer"))
+	priest_button.pressed.connect(func(): _on_character_selected("Priest"))
 	start_button.pressed.connect(_on_start_button_pressed)
 
 	# Connect NetworkManager signals
@@ -178,11 +182,15 @@ func _update_character_buttons() -> void:
 	witch_button.disabled = not ("Witch" in available or my_character == "Witch")
 	hunter_button.disabled = not ("Hunter" in available or my_character == "Hunter")
 	knight_button.disabled = not ("Knight" in available or my_character == "Knight")
+	necromancer_button.disabled = not ("Necromancer" in available or my_character == "Necromancer")
+	priest_button.disabled = not ("Priest" in available or my_character == "Priest")
 
 	# Highlight selected character
 	witch_button.text = "🧙 Witch" if my_character == "Witch" else "Witch"
 	hunter_button.text = "🏹 Hunter" if my_character == "Hunter" else "Hunter"
 	knight_button.text = "⚔️ Knight" if my_character == "Knight" else "Knight"
+	necromancer_button.text = "💀 Necromancer" if my_character == "Necromancer" else "Necromancer"
+	priest_button.text = "✨ Priest" if my_character == "Priest" else "Priest"
 
 func _on_start_button_pressed() -> void:
 	if not network_manager or not is_host:

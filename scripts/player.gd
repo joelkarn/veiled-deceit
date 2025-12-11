@@ -114,6 +114,10 @@ var crosshair_ui: Control = null
 var book_ui: Control = null
 var is_reading_book: bool = false
 
+# Torch light
+var torch_light: OmniLight3D = null
+var placed_torch_scene: PackedScene = preload("res://scenes/placed_torch.tscn")
+
 # --------------------------
 # Debugging (hitbox visual)
 # --------------------------
@@ -183,6 +187,10 @@ func _ready() -> void:
 	if player_name == "Witch":
 		call_deferred("_give_starting_astrolabe")
 
+	# Give torch to warrior players
+	if player_name == "Knight":
+		call_deferred("_give_starting_torch")
+
 	# Setup camera after everything is ready
 	call_deferred("_setup_camera")
 
@@ -195,6 +203,15 @@ func _give_starting_astrolabe() -> void:
 		InventoryManager.add_item(player_id, "astrolabe", 1)
 		print("Gave astrolabe to Witch player ", player_id)
 
+func _give_starting_torch() -> void:
+	# Give torch to warrior at game start (only on server to avoid duplicates)
+	if not multiplayer.is_server():
+		return
+
+	if InventoryManager:
+		InventoryManager.add_item(player_id, "torch", 1)
+		print("Gave torch to Knight player ", player_id)
+
 func _setup_camera() -> void:
 	if camera:
 		camera.fov = fov
@@ -203,6 +220,8 @@ func _setup_camera() -> void:
 		default_camera_position = camera.position
 	if camera_mount:
 		_pitch = camera_mount.rotation.x
+		# Get torch light reference
+		torch_light = camera_mount.get_node_or_null("TorchLight")
 
 func _set_multiplayer_authority() -> void:
 	if not is_inside_tree() or multiplayer.multiplayer_peer == null:
@@ -239,6 +258,10 @@ func _input(event: InputEvent) -> void:
 		_update_equipped_item()
 		if equipped_item_data and equipped_item_data is BookData:
 			_start_reading_book()
+		# Check if torch is equipped - place it instead of attacking
+		elif equipped_item_data and equipped_item_data.item_id == "torch":
+			_place_torch()
+			input_buffer["attack"] = false  # Don't trigger attack
 
 	if event.is_action_released("attack"):
 		input_buffer["attack"] = false
@@ -341,6 +364,7 @@ func _physics_process(delta: float) -> void:
 	# Update weapon-specific UI (only for local player)
 	if is_local_player:
 		_update_equipped_weapon()  # Check what weapon is equipped
+		_update_equipped_item()  # Check what item is equipped (for torch light)
 		_update_melee_debug_visual(false)
 		_update_crosshair_visibility()
 		_update_staff_equipped()
@@ -675,6 +699,7 @@ func _update_equipped_weapon() -> void:
 	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
 	if not toolbar:
 		equipped_weapon_data = null
+		_update_weapon_light()
 		return
 
 	var selected_slot = toolbar.selected_slot
@@ -688,9 +713,11 @@ func _update_equipped_weapon() -> void:
 			var item_data = InventoryManager.get_item_data(item_id)
 			if item_data and item_data is WeaponData:
 				equipped_weapon_data = item_data
+				_update_weapon_light()
 				return
 
 	equipped_weapon_data = null
+	_update_weapon_light()
 
 ## Get currently equipped item (weapon or other) from toolbar
 func _update_equipped_item() -> void:
@@ -698,6 +725,7 @@ func _update_equipped_item() -> void:
 	var toolbar = get_tree().current_scene.get_node_or_null("UILayers/ToolbarLayer/Toolbar")
 	if not toolbar:
 		equipped_item_data = null
+		_update_torch_light()
 		return
 
 	var selected_slot = toolbar.selected_slot
@@ -711,9 +739,51 @@ func _update_equipped_item() -> void:
 			var item_data = InventoryManager.get_item_data(item_id)
 			if item_data:
 				equipped_item_data = item_data
+				_update_torch_light()
 				return
 
 	equipped_item_data = null
+	_update_torch_light()
+
+## Update torch light visibility based on equipped item
+func _update_torch_light() -> void:
+	# Only show torch light if torch is equipped and this is the local player
+	if not is_local_player or not torch_light:
+		return
+
+	var is_torch_equipped = equipped_item_data != null and equipped_item_data.item_id == "torch"
+	torch_light.visible = is_torch_equipped
+
+## Update light when weapon changes (calls torch update)
+func _update_weapon_light() -> void:
+	_update_torch_light()
+
+## Place torch on the ground
+func _place_torch() -> void:
+	# Only on server
+	if not multiplayer.is_server():
+		return
+
+	# Check if player has torch in inventory
+	if not equipped_item_data or equipped_item_data.item_id != "torch":
+		return
+
+	# Remove torch from inventory
+	var success = InventoryManager.remove_item(player_id, "torch", 1)
+	if not success:
+		print("Failed to remove torch from inventory")
+		return
+
+	# Calculate placement position (in front of player, on ground)
+	var placement_position = global_position + (-global_transform.basis.z * 2.0)
+	placement_position.y = 0.0  # Place on ground
+
+	# Spawn placed torch
+	var torch_instance = placed_torch_scene.instantiate()
+	get_tree().current_scene.add_child(torch_instance)
+	torch_instance.global_position = placement_position
+
+	print("Player ", player_id, " placed torch at ", placement_position)
 
 ## Perform a melee attack (sword, hammer, etc.)
 func _perform_melee_attack() -> void:

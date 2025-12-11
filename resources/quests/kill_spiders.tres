@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "kill_spiders"
+quest_name = "Spider Slayer"
+description = "Hunt down 5 spiders and collect their poison in your vial. The poison will be useful for your hunts."
+goal = 5
+current_progress = 0
+is_completed = false
+quest_type = 1

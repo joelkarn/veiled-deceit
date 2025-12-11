@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3 uid="uid://c8n3y2yah3wlq"]
+
+[ext_resource type="Script" uid="uid://bv7lbcf7hljdx" path="res://scripts/enemy.gd" id="1_enemy"]
+[ext_resource type="Script" uid="uid://b0spvigtt7saj" path="res://scripts/health_bar.gd" id="2_health_bar"]
+[ext_resource type="ArrayMesh" uid="uid://civgt3io8u8c" path="res://assets/models/spider/Spider_00.obj" id="3_spider_mesh"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_spider"]
+radius = 0.8
+
+[node name="Spider" type="CharacterBody3D"]
+collision_layer = 2
+script = ExtResource("1_enemy")
+enemy_type = 1
+max_health = 50.0
+health = 50.0
+move_speed = 4.0
+attack_range = 1.5
+attack_damage = 8.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0)
+mesh = ExtResource("3_spider_mesh")
+skeleton = NodePath("")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_spider")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+
+[node name="HealthBar" type="Node3D" parent="."]
+script = ExtResource("2_health_bar")

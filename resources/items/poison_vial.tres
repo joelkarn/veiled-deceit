@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/consumable_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+item_id = "poison_vial"
+item_name = "Poison Vial"
+description = "An empty vial to collect spider poison. Fill it by hunting spiders."
+icon = null
+item_type = 1
+max_stack = 1
+is_equippable = false
+effect_type = 0
+effect_value = 0.0
+duration = 0.0

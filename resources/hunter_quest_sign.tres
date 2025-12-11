@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SignData" load_steps=2 format=3 uid="uid://c8n4y2yah3wlp"]
+
+[ext_resource type="Script" uid="uid://b7qw8yap2nk4m" path="res://scripts/sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+sign_title = "Hunter's Challenge"
+sign_text = "Brave hunter, a plague of venomous spiders has infested the forest.
+
+We need you to hunt down 5 of these creatures and collect their poison.
+
+Take this vial and fill it with spider venom. It will serve you well in future hunts."
+quest_id_to_add = "kill_spiders"

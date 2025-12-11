@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://wadd2axdlnql"]
+
+[ext_resource type="Texture2D" uid="uid://bmxuuyakjgnhn" path="res://assets/textures/holy_symbols.png" id="1_dt5sm"]
+
+[resource]
+atlas = ExtResource("1_dt5sm")
+region = Rect2(91, 93, 46, 44)
