@@ -6,6 +6,7 @@ signal menu_closed
 var is_menu_open := false
 var chest_ui: Control = null
 var angel_ui: Control = null
+var map_ui: Control = null
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -13,6 +14,9 @@ func _ready() -> void:
 		HarvestUIManager.setup_harvest_layer()
 	if VoiceManager:
 		VoiceManager.secondary_start()
+
+	# Get map UI reference
+	map_ui = get_tree().current_scene.get_node_or_null("UILayers/MapUILayer/MapUI")
 
 func _input(event: InputEvent) -> void:
 	# Don't process input if multiplayer is disconnected (prevents crashes during shutdown)
@@ -37,6 +41,9 @@ func _input(event: InputEvent) -> void:
 		# Toggle pause menu
 		toggle_menu()
 
+	if event.is_action_pressed("toggle_map"):  # M key
+		toggle_map()
+
 func toggle_menu() -> void:
 	is_menu_open = !is_menu_open
 
@@ -56,7 +63,23 @@ func close_menu() -> void:
 	menu_closed.emit()
 
 func is_menu_active() -> bool:
-	return is_menu_open or (chest_ui and chest_ui.visible) or (angel_ui and angel_ui.visible)
+	return is_menu_open or (chest_ui and chest_ui.visible) or (angel_ui and angel_ui.visible) or (map_ui and map_ui.visible)
+
+# Map UI management
+func toggle_map() -> void:
+	if not map_ui:
+		map_ui = get_tree().current_scene.get_node_or_null("UILayers/MapUILayer/MapUI")
+		if not map_ui:
+			print("UIManager: MapUI not found in scene")
+			return
+
+	if map_ui.has_method("toggle_map"):
+		map_ui.toggle_map()
+		# Show/hide mouse cursor when map is toggled
+		if map_ui.visible:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 # Chest UI management
 func show_chest_ui(chest: Node, inventory: Array) -> void:

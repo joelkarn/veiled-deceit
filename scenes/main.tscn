@@ -32,7 +32,9 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_ui.tscn" id="25_dialogue_ui"]
 [ext_resource type="PackedScene" uid="uid://bplikcq5c3o53" path="res://scenes/ui/constellation_ui.tscn" id="26_dgi5k"]
 [ext_resource type="Script" uid="uid://c31as2n6r2gs1" path="res://scripts/constellation_manager.gd" id="26_fv21b"]
+[ext_resource type="PackedScene" uid="uid://b8k6xj9vwxmt" path="res://scenes/ui/map_ui.tscn" id="27_mapui"]
 [ext_resource type="Script" uid="uid://ppsvqvjjr8n1" path="res://scripts/constellation_data.gd" id="27_tel4y"]
+[ext_resource type="PackedScene" uid="uid://c9k6xj9vwxmt" path="res://scenes/ui/minimap_ui.tscn" id="28_minimap"]
 [ext_resource type="Resource" uid="uid://bgpktejbxwlc7" path="res://resources/constellations/hunter_constellation.tres" id="28_qkpxi"]
 [ext_resource type="Resource" uid="uid://tv08h1vbbjm3" path="res://resources/constellations/mystic_constellation.tres" id="29_5q0nq"]
 [ext_resource type="Resource" uid="uid://dmr66p7lpu8hw" path="res://resources/constellations/warrior_constellation.tres" id="30_dgi5k"]
@@ -228,6 +230,16 @@ layer = 2
 layer = 2
 
 [node name="ConstellationUI" parent="UILayers/ConstellationUILayer" unique_id=236903259 instance=ExtResource("26_dgi5k")]
+
+[node name="MapUILayer" type="CanvasLayer" parent="UILayers"]
+layer = 3
+
+[node name="MapUI" parent="UILayers/MapUILayer" instance=ExtResource("27_mapui")]
+
+[node name="MinimapUILayer" type="CanvasLayer" parent="UILayers"]
+layer = 1
+
+[node name="MinimapUI" parent="UILayers/MinimapUILayer" instance=ExtResource("28_minimap")]
 
 [node name="ConstellationManager" type="Node" parent="." unique_id=248159986]
 script = ExtResource("26_fv21b")

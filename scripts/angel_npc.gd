@@ -476,3 +476,33 @@ func has_quest_for_player(player_id: int, player_class: String = "") -> bool:
 		return true
 
 	return false
+
+## Get the current quest marker type for the local player
+## Returns: "!" for available quest, "?" for turn-in, "" for no marker
+func get_quest_marker_for_local_player() -> String:
+	var local_player_id = multiplayer.get_unique_id()
+
+	# Get player's class
+	var players = get_tree().get_nodes_in_group("players")
+	var player_class = ""
+	for player in players:
+		if player.get("player_id") == local_player_id:
+			player_class = player.get("player_name")
+			break
+
+	var follow_up_quest = class_quests.get(player_class, "kill_enemies")
+	var initial_quest_obj = QuestManager.get_quest(initial_quest, local_player_id)
+	var follow_up_quest_obj = QuestManager.get_quest(follow_up_quest, local_player_id)
+
+	# Check if initial quest is ready to turn in
+	if initial_quest_obj and initial_quest_obj.is_completed:
+		return "?"
+	# Check if follow-up quest is ready to turn in
+	elif follow_up_quest_obj and follow_up_quest_obj.is_completed:
+		return "?"
+	# Check if follow-up quest is available (initial turned in, no follow-up yet)
+	elif initial_quest_obj == null and follow_up_quest_obj == null:
+		if not players_who_completed_followup.get(local_player_id, false):
+			return "!"
+
+	return ""
