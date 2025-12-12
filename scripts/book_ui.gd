@@ -2,10 +2,10 @@ extends Control
 
 ## Book UI - Shows two pages with text content when reading a book
 
-@onready var left_page: Panel = $BookContainer/LeftPage
-@onready var right_page: Panel = $BookContainer/RightPage
-@onready var left_text: Label = $BookContainer/LeftPage/LeftText
-@onready var right_text: Label = $BookContainer/RightPage/RightText
+@onready var left_page: Panel = $BookContainer/HBoxContainer/LeftPage
+@onready var right_page: Panel = $BookContainer/HBoxContainer/RightPage
+@onready var left_text: Label = $BookContainer/HBoxContainer/LeftPage/LeftText
+@onready var right_text: Label = $BookContainer/HBoxContainer/RightPage/RightText
 
 var current_book_data: BookData = null
 

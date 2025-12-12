@@ -18,9 +18,15 @@ var class_quests: Dictionary = {
 
 @onready var question_marker: Node3D = $QuestionMarker
 @onready var name_label_3d: Label3D = $NameLabel3D
+@onready var visuals: Node3D = $Visuals
 
 var players_who_completed_initial: Dictionary = {}  # player_id -> bool
 var players_who_completed_followup: Dictionary = {}  # player_id -> bool
+
+# Hovering animation variables
+var hover_time: float = 0.0
+var hover_speed: float = 1.0  # Speed of hovering
+var hover_height: float = 0.3  # How far up and down to hover
 
 func _ready() -> void:
 	super._ready()
@@ -37,6 +43,11 @@ func _ready() -> void:
 		question_marker.visible = true
 
 func _process(_delta: float) -> void:
+	# Hovering animation
+	hover_time += _delta * hover_speed
+	if visuals:
+		visuals.position.y = sin(hover_time) * hover_height
+
 	# Make name label and question mark face the camera
 	if name_label_3d:
 		var camera = get_viewport().get_camera_3d()

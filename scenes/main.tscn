@@ -40,7 +40,7 @@
 [ext_resource type="Resource" uid="uid://de42ebjaatqk3" path="res://resources/constellations/tree_constellation.tres" id="32_dgi5k"]
 [ext_resource type="Script" uid="uid://dv5880ryl7vjo" path="res://scripts/witch_content_spawner.gd" id="34_witch_spawner"]
 [ext_resource type="Script" uid="uid://cy5jtiahhq1lo" path="res://scripts/hunter_content_spawner.gd" id="35_hunter_spawner"]
-[ext_resource type="PackedScene" path="res://scenes/angel_npc.tscn" id="39_c6pm6"]
+[ext_resource type="PackedScene" uid="uid://cruu3gv8c6lue" path="res://scenes/angel_npc.tscn" id="39_c6pm6"]
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_qkpxi"]
 panorama = ExtResource("2_tel4y")
@@ -241,4 +241,4 @@ script = ExtResource("34_witch_spawner")
 script = ExtResource("35_hunter_spawner")
 
 [node name="AngelNPC" parent="." unique_id=1831851391 instance=ExtResource("39_c6pm6")]
-transform = Transform3D(-0.898947, 0, 0.43805736, 0, 1, 0, -0.43805736, 0, -0.898947, 0.90786505, 1.5833163, -8.1008625)
+transform = Transform3D(-0.898947, 0, 0.43805736, 0, 1, 0, -0.43805736, 0, -0.898947, 0, 0.558702, -8.923062)

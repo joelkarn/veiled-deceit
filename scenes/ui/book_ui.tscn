@@ -20,11 +20,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="LeftPage" type="Panel" parent="BookContainer" unique_id=817571526]
+[node name="HBoxContainer" type="HBoxContainer" parent="BookContainer" unique_id=2029471602]
+layout_mode = 2
+
+[node name="LeftPage" type="Panel" parent="BookContainer/HBoxContainer" unique_id=817571526]
 custom_minimum_size = Vector2(300, 400)
 layout_mode = 2
 
-[node name="LeftText" type="Label" parent="BookContainer/LeftPage" unique_id=66079221]
+[node name="LeftText" type="Label" parent="BookContainer/HBoxContainer/LeftPage" unique_id=66079221]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -42,11 +45,11 @@ text = "Left page text"
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="RightPage" type="Panel" parent="BookContainer" unique_id=1170215608]
+[node name="RightPage" type="Panel" parent="BookContainer/HBoxContainer" unique_id=1170215608]
 custom_minimum_size = Vector2(300, 400)
 layout_mode = 2
 
-[node name="RightText" type="Label" parent="BookContainer/RightPage" unique_id=54923994]
+[node name="RightText" type="Label" parent="BookContainer/HBoxContainer/RightPage" unique_id=54923994]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
