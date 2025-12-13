@@ -1299,12 +1299,18 @@ func send_position_update_to_server() -> void:
 	if not is_local_player or multiplayer.multiplayer_peer == null:
 		return
 
+	# Include current animation state so host can sync it
+	var current_animation = ""
+	if animation_player:
+		current_animation = animation_player.current_animation
+
 	var state = {
 		"position": position,
 		"rotation_y": rotation.y,
 		"camera_pitch": camera_mount.rotation.x,
 		"velocity": velocity,
-		"is_jumping": is_jumping
+		"is_jumping": is_jumping,
+		"animation": current_animation
 	}
 
 	if multiplayer.is_server():
@@ -1341,6 +1347,18 @@ func validate_client_position_state(state: Dictionary) -> void:
 	camera_mount.rotation.x = state.get("camera_pitch", camera_mount.rotation.x)
 	velocity = state.get("velocity", velocity)
 	is_jumping = state.get("is_jumping", is_jumping)
+	
+	# Update animation from client state (for non-host players attacking)
+	var client_animation = state.get("animation", "")
+	if client_animation != "" and animation_player and animation_player.has_animation(client_animation):
+		# Only update if it's different to avoid interrupting animations
+		if animation_player.current_animation != client_animation:
+			# Set speed scale for Swing animation
+			if client_animation == "character_animations/Swing":
+				animation_player.speed_scale = 10.0
+			else:
+				animation_player.speed_scale = 1.0
+			animation_player.play(client_animation)
 
 	# Update tracking state
 	last_validated_position = position
@@ -1398,18 +1416,21 @@ func _update_remote_player_visuals_and_animation(_delta: float) -> void:
 		var velocity_direction = horizontal_velocity.normalized()
 		var dot_product = forward_direction.dot(velocity_direction)
 		
-		# If dot product is negative, moving backward
-		if dot_product < -0.5:  # Threshold to account for sideways movement
+		# Update visuals rotation based on movement direction
+		# If moving backward, face away from movement direction (same as local player)
+		if dot_product < -0.5:  # Threshold to account for sideways movement - moving backward
+			visuals.look_at(position - horizontal_velocity.normalized())
 			if animation_player and animation_player.has_animation("character_animations/RunBackwards"):
 				animation_to_play = "character_animations/RunBackwards"
-				# Face opposite direction for backwards animation
-				visuals.look_at(position - horizontal_velocity.normalized())
 			else:
 				animation_to_play = "character_animations/Run"
-				visuals.look_at(position + horizontal_velocity.normalized())
 		else:
-			animation_to_play = "character_animations/Run"
+			# Moving forward or sideways - face movement direction
 			visuals.look_at(position + horizontal_velocity.normalized())
+			animation_to_play = "character_animations/Run"
+	# Always update visuals rotation when there's any horizontal movement (for strafing)
+	elif movement_magnitude > 0.01:
+		visuals.look_at(position + horizontal_velocity.normalized())
 	else:
 		animation_to_play = "character_animations/Idle"
 
@@ -1444,6 +1465,21 @@ func _interpolate_remote_player(delta: float) -> void:
 	var horizontal_velocity = Vector3(target_velocity.x, 0, target_velocity.z)
 	var movement_magnitude = horizontal_velocity.length()
 
+	# Always update visuals rotation based on movement direction when there's horizontal movement
+	# This must happen regardless of animation state to ensure strafing is visible correctly
+	if movement_magnitude > 0.01:
+		# Determine if moving backward based on velocity direction relative to facing direction
+		var forward_direction = -global_transform.basis.z
+		var velocity_direction = horizontal_velocity.normalized()
+		var dot_product = forward_direction.dot(velocity_direction)
+		
+		# If moving backward, face away from movement direction (same as local player)
+		if dot_product < -0.5:  # Threshold to account for sideways movement - moving backward
+			visuals.look_at(position - horizontal_velocity.normalized())
+		else:
+			# Moving forward or sideways (strafing) - face movement direction
+			visuals.look_at(position + horizontal_velocity.normalized())
+
 	# Determine animation - prefer synced animation if available, otherwise infer from state
 	var animation_to_play = ""
 	
@@ -1469,17 +1505,13 @@ func _interpolate_remote_player(delta: float) -> void:
 			var dot_product = forward_direction.dot(velocity_direction)
 			
 			# If dot product is negative, moving backward
-			if dot_product < -0.5:  # Threshold to account for sideways movement
+			if dot_product < -0.5:  # Threshold to account for sideways movement - moving backward
 				if animation_player and animation_player.has_animation("character_animations/RunBackwards"):
 					animation_to_play = "character_animations/RunBackwards"
-					# Face opposite direction for backwards animation
-					visuals.look_at(position - horizontal_velocity.normalized())
 				else:
 					animation_to_play = "character_animations/Run"
-					visuals.look_at(position + horizontal_velocity.normalized())
 			else:
 				animation_to_play = "character_animations/Run"
-				visuals.look_at(position + horizontal_velocity.normalized())
 		else:
 			animation_to_play = "character_animations/Idle"
 
