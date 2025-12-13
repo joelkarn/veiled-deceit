@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://bounje2lkwu3m" path="res://assets/models/character.glb" id="1_rkhd4"]
 [ext_resource type="AnimationLibrary" uid="uid://bu1hd7otrt7fn" path="res://assets/models/character_animations.glb" id="2_rkhd4"]
 
-[node name="character" unique_id=375075838 instance=ExtResource("1_rkhd4")]
+[node name="character2" unique_id=375075838 instance=ExtResource("1_rkhd4")]
 
 [node name="Skeleton3D" parent="Armature" parent_id_path=PackedInt32Array(1392632286) index="0" unique_id=1256635232]
 bones/0/position = Vector3(0.19423671, -0.9022939, -100.89664)
