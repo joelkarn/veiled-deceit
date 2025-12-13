@@ -1,13 +1,14 @@
-[gd_resource type="Resource" script_class="ConsumableData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ConsumableData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/consumable_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://dkv63t4khjm0c" path="res://assets/icons/torch_icon.svg" id="2_icon"]
 
 [resource]
 script = ExtResource("1")
 item_id = "torch"
 item_name = "Torch"
 description = "A burning torch that provides light in dark places. Equip it to see in the darkness."
-icon = null
+icon = ExtResource("2_icon")
 item_type = 1
 max_stack = 1
 is_equippable = true

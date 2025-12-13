@@ -183,13 +183,11 @@ func _ready() -> void:
 	_update_melee_debug_visual(false)
 	_create_debug_line()
 
-	# Give astrolabe to witch players
-	if player_name == "Witch":
-		call_deferred("_give_starting_astrolabe")
-
-	# Give torch to warrior players
-	if player_name == "Knight":
-		call_deferred("_give_starting_torch")
+	# Starting items removed - now given as quest rewards from Angel NPC
+	# if player_name == "Witch":
+	# 	call_deferred("_give_starting_astrolabe")
+	# if player_name == "Knight":
+	# 	call_deferred("_give_starting_torch")
 
 	# Setup camera after everything is ready
 	call_deferred("_setup_camera")

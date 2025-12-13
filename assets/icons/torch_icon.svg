@@ -1,0 +1,7 @@
+<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" fill="#2a2a2a"/>
+  <line x1="10" y1="54" x2="54" y2="10" stroke="#cccccc" stroke-width="4"/>
+  <line x1="8" y1="56" x2="56" y2="8" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="54" cy="10" r="4" fill="#ffcc00"/>
+  <text x="32" y="60" font-family="Arial" font-size="10" fill="#888888" text-anchor="middle">SWORD</text>
+</svg>

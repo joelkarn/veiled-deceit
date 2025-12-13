@@ -286,10 +286,21 @@ func on_quest_turned_in(player_id: int, quest_id: String, player_class: String =
 	# Server: Process turn-in
 	# Check which quest was turned in
 	if quest_id == initial_quest:
-		# Initial quest turned in - mark as complete, but don't give next quest yet
+		# Initial quest turned in - mark as complete and give class-specific reward
 		if not players_who_completed_initial.get(player_id, false):
 			players_who_completed_initial[player_id] = true
-			# TODO: Give rewards (items, experience, etc.)
+
+			# Give class-specific starting item as reward
+			if player_class == "Knight":
+				InventoryManager.add_item(player_id, "torch", 1)
+				print("Angel: Gave torch to Knight player ", player_id)
+			elif player_class == "Witch":
+				InventoryManager.add_item(player_id, "astrolabe", 1)
+				print("Angel: Gave astrolabe to Witch player ", player_id)
+			elif player_class == "Priest":
+				InventoryManager.add_item(player_id, "book", 1)
+				print("Angel: Gave book to Priest player ", player_id)
+
 			print("Angel: Player ", player_id, " turned in quest: ", quest_id)
 			# Sync to all clients
 			rpc("_sync_turn_in_state", player_id, quest_id)
