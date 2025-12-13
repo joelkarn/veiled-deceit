@@ -461,15 +461,14 @@ func process_movement(delta: float) -> void:
 
 		if is_jumping:
 			handle_jumping(init_jump_input, direction, input_dir, speed_multiplier)
-			# Play Idle animation while in air (no Jump animation available)
-			if animation_player and animation_player.current_animation != "character_animations/Idle" and animation_player.has_animation("character_animations/Idle"):
-				animation_player.play("character_animations/Idle")
+			# Play Jump animation while jumping
+			if animation_player and animation_player.current_animation != "character_animations/Jump" and animation_player.has_animation("character_animations/Jump"):
+				animation_player.play("character_animations/Jump")
 		else:
 			handle_falling(direction, speed_multiplier)
-			# Keep Idle animation while falling
-			if animation_player and animation_player.current_animation == "character_animations/Idle":
-				# Animation will continue until we land
-				pass
+			# Keep Jump animation while falling (in the air)
+			if animation_player and animation_player.current_animation != "character_animations/Jump" and animation_player.has_animation("character_animations/Jump"):
+				animation_player.play("character_animations/Jump")
 
 		# Apply soft collision push-away (only for local players, horizontal only)
 		if is_local_player:
@@ -519,9 +518,9 @@ func process_movement(delta: float) -> void:
 		init_jump_input = input_dir
 		init_jump_dir.x = direction.x
 		init_jump_dir.y = direction.z
-		# Start Idle animation immediately (no Jump animation available)
-		if animation_player and animation_player.has_animation("character_animations/Idle"):
-			animation_player.play("character_animations/Idle")
+		# Start Jump animation immediately when space is pressed
+		if animation_player and animation_player.has_animation("character_animations/Jump"):
+			animation_player.play("character_animations/Jump")
 		input_buffer["jump"] = false
 
 	# Apply soft collision push-away (only for local players, horizontal only)
