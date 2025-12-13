@@ -7,7 +7,7 @@ var is_local_player: bool = false
 var is_host: bool = false
 
 @onready var camera_mount: Node3D = $camera_mount
-@onready var animation_player: AnimationPlayer = $visuals/mixamo_base/AnimationPlayer
+@onready var animation_player: AnimationPlayer = $visuals/character/AnimationPlayer
 @onready var visuals: Node3D = $visuals
 @onready var camera: Camera3D = $camera_mount/Camera3D
 
@@ -461,8 +461,15 @@ func process_movement(delta: float) -> void:
 
 		if is_jumping:
 			handle_jumping(init_jump_input, direction, input_dir, speed_multiplier)
+			# Play Idle animation while in air (no Jump animation available)
+			if animation_player and animation_player.current_animation != "character_animations/Idle" and animation_player.has_animation("character_animations/Idle"):
+				animation_player.play("character_animations/Idle")
 		else:
 			handle_falling(direction, speed_multiplier)
+			# Keep Idle animation while falling
+			if animation_player and animation_player.current_animation == "character_animations/Idle":
+				# Animation will continue until we land
+				pass
 
 		# Apply soft collision push-away (only for local players, horizontal only)
 		if is_local_player:
@@ -474,17 +481,34 @@ func process_movement(delta: float) -> void:
 	# If on the floor, allow horizontal movement
 	is_jumping = false
 	# Animate and set velocity
+	# Don't override attack animations - let them play through
+	if not auto_attack_active:
+		if direction != Vector3.ZERO:
+			# Check if moving backward (S or down arrow pressed)
+			# Note: input_dir.y > 0 means forward (W), input_dir.y < 0 means backward (S)
+			var is_moving_backward = input_dir.y > 0
+			
+			if is_moving_backward:
+				# Play RunBackwards animation
+				if animation_player and animation_player.current_animation != "character_animations/RunBackwards" and animation_player.has_animation("character_animations/RunBackwards"):
+					animation_player.play("character_animations/RunBackwards")
+				# Rotate visuals to face opposite direction (away from movement) for backwards animation
+				visuals.look_at(position - direction)
+			else:
+				# Play Run animation for forward/sideways movement
+				if animation_player and animation_player.current_animation != "character_animations/Run" and animation_player.has_animation("character_animations/Run"):
+					animation_player.play("character_animations/Run")
+				# Rotate visuals to face movement direction
+				visuals.look_at(position + direction)
+		else:
+			if animation_player and animation_player.current_animation != "character_animations/Idle":
+				animation_player.play("character_animations/Idle")
+	
+	# Set velocity regardless of attack state (allow movement during attack)
 	if direction != Vector3.ZERO:
-		if animation_player and animation_player.current_animation != "running":
-			animation_player.play("running")
-		# Rotate visuals to face movement direction
-		visuals.look_at(position + direction)
-
 		velocity.x = direction.x * SPEED * speed_multiplier
 		velocity.z = direction.z * SPEED * speed_multiplier
 	else:
-		if animation_player and animation_player.current_animation != "idle":
-			animation_player.play("idle")
 		# Stop moving horizontally
 		velocity.x = 0.0
 		velocity.z = 0.0
@@ -495,6 +519,9 @@ func process_movement(delta: float) -> void:
 		init_jump_input = input_dir
 		init_jump_dir.x = direction.x
 		init_jump_dir.y = direction.z
+		# Start Idle animation immediately (no Jump animation available)
+		if animation_player and animation_player.has_animation("character_animations/Idle"):
+			animation_player.play("character_animations/Idle")
 		input_buffer["jump"] = false
 
 	# Apply soft collision push-away (only for local players, horizontal only)
@@ -789,13 +816,36 @@ func _perform_melee_attack() -> void:
 	auto_attack_on_cooldown = true
 	already_hit.clear()
 
-	if animation_player and animation_player.has_animation("attack"):
-		animation_player.play("attack")
+	# Play Swing animation for melee attacks (sword, hammer) at 10x speed
+	var swing_animation_length = 0.0
+	var original_speed_scale = 1.0
+	if animation_player and animation_player.has_animation("character_animations/Swing"):
+		# Store original speed scale
+		original_speed_scale = animation_player.speed_scale
+		# Set speed to 10x faster
+		animation_player.speed_scale = 10.0
+		animation_player.play("character_animations/Swing")
+		swing_animation_length = animation_player.get_animation("character_animations/Swing").length
 
 	# Enable hitbox for the short active window
 	_enable_melee_area(true)
 	await get_tree().create_timer(AUTO_ATTACK_WINDOW_SECONDS).timeout
 	_enable_melee_area(false)
+
+	# Wait for the Swing animation to complete (or at least most of it)
+	# This prevents movement animations from interrupting the attack animation
+	# Since animation plays 10x faster, divide the wait time by 10
+	if swing_animation_length > 0.0:
+		# Wait for the animation to finish at 10x speed, but cap it at a reasonable max duration
+		var wait_time = min(swing_animation_length / 10.0, 0.1)  # Cap at 0.1 second max (since it's 10x faster)
+		await get_tree().create_timer(wait_time).timeout
+	else:
+		# Fallback: wait a reasonable time if we couldn't get animation length
+		await get_tree().create_timer(0.05).timeout  # 0.5 / 10 = 0.05 seconds
+	
+	# Reset speed scale back to original
+	if animation_player:
+		animation_player.speed_scale = original_speed_scale
 
 	auto_attack_active = false
 
@@ -1068,8 +1118,8 @@ func _sync_fireball_spawn(from: Vector3, to: Vector3) -> void:
 
 func stop_movement(delta):
 	# Stop animation and movement when menu is open
-	if animation_player and animation_player.current_animation != "idle":
-		animation_player.play("idle")
+	if animation_player and animation_player.current_animation != "character_animations/Idle":
+		animation_player.play("character_animations/Idle")
 	# Just apply gravity and stop horizontal movement
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
@@ -1319,11 +1369,11 @@ func _update_remote_player_visuals_and_animation(_delta: float) -> void:
 
 	if animation_player:
 		if movement_magnitude > 0.1:
-			if animation_player.current_animation != "running" and animation_player.has_animation("running"):
-				animation_player.play("running")
+			if animation_player.current_animation != "character_animations/Run" and animation_player.has_animation("character_animations/Run"):
+				animation_player.play("character_animations/Run")
 		else:
-			if animation_player.current_animation != "idle" and animation_player.has_animation("idle"):
-				animation_player.play("idle")
+			if animation_player.current_animation != "character_animations/Idle" and animation_player.has_animation("character_animations/Idle"):
+				animation_player.play("character_animations/Idle")
 
 # Interpolate remote player toward target state
 func _interpolate_remote_player(delta: float) -> void:
@@ -1351,11 +1401,11 @@ func _interpolate_remote_player(delta: float) -> void:
 
 	if animation_player:
 		if movement_magnitude > 0.1:
-			if animation_player.current_animation != "running" and animation_player.has_animation("running"):
-				animation_player.play("running")
+			if animation_player.current_animation != "character_animations/Run" and animation_player.has_animation("character_animations/Run"):
+				animation_player.play("character_animations/Run")
 		else:
-			if animation_player.current_animation != "idle" and animation_player.has_animation("idle"):
-				animation_player.play("idle")
+			if animation_player.current_animation != "character_animations/Idle" and animation_player.has_animation("character_animations/Idle"):
+				animation_player.play("character_animations/Idle")
 
 	velocity = Vector3.ZERO
 
