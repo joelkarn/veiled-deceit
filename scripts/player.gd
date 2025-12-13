@@ -59,6 +59,8 @@ var target_position: Vector3 = Vector3.ZERO
 var target_rotation_y: float = 0.0
 var target_camera_pitch: float = 0.0
 var target_velocity: Vector3 = Vector3.ZERO
+var target_animation: String = ""
+var target_is_jumping: bool = false
 var has_target_state: bool = false  # Whether we've received a state update
 var remote_interpolation_speed: float = 15.0  # units per second
 
@@ -1276,6 +1278,8 @@ func update_player_state(state: Dictionary) -> void:
 		target_rotation_y = state.get("rotation_y", rotation.y)
 		target_camera_pitch = state.get("camera_pitch", camera_mount.rotation.x)
 		target_velocity = state.get("velocity", Vector3.ZERO)
+		target_animation = state.get("animation", "")
+		target_is_jumping = state.get("is_jumping", false)
 
 		# Snap to position on first update or large difference
 		var was_first_update = not has_target_state
@@ -1363,16 +1367,61 @@ func _update_remote_player_visuals_and_animation(_delta: float) -> void:
 	var horizontal_velocity = Vector3(velocity.x, 0, velocity.z)
 	var movement_magnitude = horizontal_velocity.length()
 
-	if movement_magnitude > 0.1:
-		visuals.look_at(position + horizontal_velocity.normalized())
-
+	# For remote players on host, use the synced animation from sync_player_state
+	# This is more reliable than inferring from state
+	var current_synced_animation = ""
 	if animation_player:
-		if movement_magnitude > 0.1:
-			if animation_player.current_animation != "character_animations/Run" and animation_player.has_animation("character_animations/Run"):
-				animation_player.play("character_animations/Run")
+		current_synced_animation = animation_player.current_animation
+
+	# Determine animation based on state
+	var animation_to_play = ""
+	
+	# Check if attacking (Swing animation takes priority) - use synced animation if it's Swing
+	if current_synced_animation == "character_animations/Swing" and animation_player and animation_player.has_animation("character_animations/Swing"):
+		animation_to_play = "character_animations/Swing"
+		# Set speed to 10x faster for Swing
+		animation_player.speed_scale = 10.0
+	# Only use jump animation if actually in the air (check velocity.y, not is_on_floor which is unreliable for remote players)
+	# Check if moving upward (jumping) or falling (negative velocity.y means falling)
+	# Also validate that if synced animation is Jump, player must actually be in the air
+	elif abs(velocity.y) > 0.5:  # If vertical velocity is significant, player is in the air
+		if animation_player and animation_player.has_animation("character_animations/Jump"):
+			animation_to_play = "character_animations/Jump"
+	# If synced animation is Jump but player is on ground, override it (fixes stuck jump animation)
+	elif current_synced_animation == "character_animations/Jump" and abs(velocity.y) <= 0.5:
+		# Player is on ground but animation is Jump - this is wrong, will be overridden below
+		pass
+	# Check movement direction
+	elif movement_magnitude > 0.1:
+		# Determine if moving backward based on velocity direction relative to facing direction
+		var forward_direction = -global_transform.basis.z
+		var velocity_direction = horizontal_velocity.normalized()
+		var dot_product = forward_direction.dot(velocity_direction)
+		
+		# If dot product is negative, moving backward
+		if dot_product < -0.5:  # Threshold to account for sideways movement
+			if animation_player and animation_player.has_animation("character_animations/RunBackwards"):
+				animation_to_play = "character_animations/RunBackwards"
+				# Face opposite direction for backwards animation
+				visuals.look_at(position - horizontal_velocity.normalized())
+			else:
+				animation_to_play = "character_animations/Run"
+				visuals.look_at(position + horizontal_velocity.normalized())
 		else:
-			if animation_player.current_animation != "character_animations/Idle" and animation_player.has_animation("character_animations/Idle"):
-				animation_player.play("character_animations/Idle")
+			animation_to_play = "character_animations/Run"
+			visuals.look_at(position + horizontal_velocity.normalized())
+	else:
+		animation_to_play = "character_animations/Idle"
+
+	# Play the determined animation
+	if animation_player and animation_to_play != "":
+		if animation_player.current_animation != animation_to_play and animation_player.has_animation(animation_to_play):
+			# Set speed scale for Swing animation
+			if animation_to_play == "character_animations/Swing":
+				animation_player.speed_scale = 10.0
+			else:
+				animation_player.speed_scale = 1.0
+			animation_player.play(animation_to_play)
 
 # Interpolate remote player toward target state
 func _interpolate_remote_player(delta: float) -> void:
@@ -1391,20 +1440,58 @@ func _interpolate_remote_player(delta: float) -> void:
 	rotation.y = lerp_angle(rotation.y, target_rotation_y, 0.2)
 	camera_mount.rotation.x = lerp(camera_mount.rotation.x, target_camera_pitch, 0.2)
 
-	# Update visuals and animation based on movement direction
+	# Update visuals and animation based on movement direction and synced state
 	var horizontal_velocity = Vector3(target_velocity.x, 0, target_velocity.z)
 	var movement_magnitude = horizontal_velocity.length()
 
-	if movement_magnitude > 0.1:
-		visuals.look_at(position + horizontal_velocity.normalized())
-
-	if animation_player:
-		if movement_magnitude > 0.1:
-			if animation_player.current_animation != "character_animations/Run" and animation_player.has_animation("character_animations/Run"):
-				animation_player.play("character_animations/Run")
+	# Determine animation - prefer synced animation if available, otherwise infer from state
+	var animation_to_play = ""
+	
+	# Use synced animation if available and valid
+	if target_animation != "" and animation_player and animation_player.has_animation(target_animation):
+		animation_to_play = target_animation
+		# If it's the Swing animation, set speed to 10x faster
+		if target_animation == "character_animations/Swing":
+			animation_player.speed_scale = 10.0
 		else:
-			if animation_player.current_animation != "character_animations/Idle" and animation_player.has_animation("character_animations/Idle"):
-				animation_player.play("character_animations/Idle")
+			animation_player.speed_scale = 1.0
+	# Otherwise infer from state
+	else:
+		# Check if jumping (in air) - only check floor state, not target_is_jumping flag
+		if not is_on_floor():
+			if animation_player and animation_player.has_animation("character_animations/Jump"):
+				animation_to_play = "character_animations/Jump"
+		# Check movement direction
+		elif movement_magnitude > 0.1:
+			# Determine if moving backward based on velocity direction relative to facing direction
+			var forward_direction = -global_transform.basis.z
+			var velocity_direction = horizontal_velocity.normalized()
+			var dot_product = forward_direction.dot(velocity_direction)
+			
+			# If dot product is negative, moving backward
+			if dot_product < -0.5:  # Threshold to account for sideways movement
+				if animation_player and animation_player.has_animation("character_animations/RunBackwards"):
+					animation_to_play = "character_animations/RunBackwards"
+					# Face opposite direction for backwards animation
+					visuals.look_at(position - horizontal_velocity.normalized())
+				else:
+					animation_to_play = "character_animations/Run"
+					visuals.look_at(position + horizontal_velocity.normalized())
+			else:
+				animation_to_play = "character_animations/Run"
+				visuals.look_at(position + horizontal_velocity.normalized())
+		else:
+			animation_to_play = "character_animations/Idle"
+
+	# Play the determined animation
+	if animation_player and animation_to_play != "":
+		if animation_player.current_animation != animation_to_play and animation_player.has_animation(animation_to_play):
+			# Set speed scale for Swing animation
+			if animation_to_play == "character_animations/Swing":
+				animation_player.speed_scale = 10.0
+			else:
+				animation_player.speed_scale = 1.0
+			animation_player.play(animation_to_play)
 
 	velocity = Vector3.ZERO
 
