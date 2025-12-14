@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://book_text_row"]
+
+[ext_resource type="Script" path="res://scripts/ui/book_text_row.gd" id="1"]
+
+[node name="BookTextRow" type="VBoxContainer"]
+script = ExtResource("1")
+custom_minimum_size = Vector2(0, 70)
+offset_right = 400.0
+offset_bottom = 70.0
+theme_override_constants/separation = 3
+
+[node name="TextTitle" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "SOLVE ET COAGULA"
+
+[node name="Syllable" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 13
+text = "Syllable: TAS"
+
+[node name="Meaning" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "The great cycle - destroy and rebuild"
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2

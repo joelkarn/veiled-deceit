@@ -166,6 +166,10 @@ func start_game() -> void:
 	game_started = true
 	print("[Handshake] start_game called. Players: ", player_characters)
 
+	# Initialize the cave mystery on server
+	if CaveMysteryManager:
+		CaveMysteryManager.initialize_mystery()
+
 	# Setup handshake tracking
 	peers_ready.clear()
 	peers_spawned.clear()

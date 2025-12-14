@@ -1,0 +1,47 @@
+[gd_scene load_steps=2 format=3 uid="uid://fupdhrgff750"]
+
+[ext_resource type="Script" uid="uid://d23xb873gihxi" path="res://scripts/ui/temple_name_input.gd" id="1_temple_input"]
+
+[node name="TempleNameInput3" type="AcceptDialog" unique_id=1216459761]
+oversampling_override = 1.0
+title = "Temple Sentinel"
+initial_position = 2
+size = Vector2i(500, 4200)
+ok_button_text = "Submit Name"
+script = ExtResource("1_temple_input")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1791746557]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 492.0
+offset_bottom = 4151.0
+theme_override_constants/separation = 10
+
+[node name="MessageLabel" type="Label" parent="VBoxContainer" unique_id=1486101374]
+layout_mode = 2
+text = "The temple is sealed. Speak the sacred name to enter."
+autowrap_mode = 3
+
+[node name="HintLabel" type="Label" parent="VBoxContainer" unique_id=781475875]
+layout_mode = 2
+text = "The sacred name is formed from two syllables - one from a symbol, one from a text found in the cave."
+autowrap_mode = 3
+
+[node name="InstructionLabel" type="Label" parent="VBoxContainer" unique_id=75364126]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+text = "
+Enter the sacred name:"
+
+[node name="NameInput" type="LineEdit" parent="VBoxContainer" unique_id=2053561862]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+placeholder_text = "Enter temple name..."
+
+[node name="SubmitButton" type="Button" parent="VBoxContainer" unique_id=263815792]
+layout_mode = 2
+text = "Submit Name"
+
+[connection signal="canceled" from="." to="." method="_on_canceled"]
+[connection signal="confirmed" from="." to="." method="_on_confirmed"]
+[connection signal="pressed" from="VBoxContainer/SubmitButton" to="." method="_on_submit_button_pressed"]

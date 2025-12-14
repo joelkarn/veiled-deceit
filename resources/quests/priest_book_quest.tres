@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "priest_book_quest"
+quest_name = "The Book of Interpretations"
+description = "The Angel has entrusted you with the sacred Book of Interpretations. Study the symbols and texts within the cave, and use the book to decipher their meanings. Two key elements will reveal the name required to enter the temple."
+goal = 1
+current_progress = 0
+is_completed = false
+quest_type = 3

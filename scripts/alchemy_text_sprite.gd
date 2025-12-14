@@ -78,6 +78,7 @@ var current_brightness: float = 0.0
 var update_timer: float = 0.0
 var update_interval: float = 0.1
 var selected_text: String = ""
+var text_index: int = -1  # Specific text index to use (-1 = random)
 
 func _ready() -> void:
 	# In editor, show placeholder
@@ -87,19 +88,28 @@ func _ready() -> void:
 		modulate = Color(1.0, 1.0, 1.0, 1.0)
 		return
 
-	# In game, randomize if enabled
+	# In game, randomize if enabled or use specific index
 	if randomize_text:
-		selected_text = ALCHEMY_TEXTS[randi() % ALCHEMY_TEXTS.size()]
+		if text_index >= 0 and text_index < ALCHEMY_TEXTS.size():
+			# Use specific text from CaveMysteryManager
+			selected_text = ALCHEMY_TEXTS[text_index]
+		else:
+			# Random text
+			selected_text = ALCHEMY_TEXTS[randi() % ALCHEMY_TEXTS.size()]
 		text = selected_text
-		print("Alchemy text randomized to: ", selected_text)
-	
+		print("Alchemy text set to: ", selected_text)
+
 	# Apply random rotation if enabled
 	if random_rotation:
 		var random_angle = randf_range(-15.0, 15.0)  # Rotate ±15 degrees
 		rotate_z(deg_to_rad(random_angle))
-	
+
 	# Set up glowing material (pure white like symbols)
 	modulate = Color(1.0, 1.0, 1.0, 0.0)  # Pure white, start invisible
+
+func set_text_index(index: int) -> void:
+	"""Set a specific text index (must be called before _ready)"""
+	text_index = index
 
 func _process(delta: float) -> void:
 	# Skip light detection in editor

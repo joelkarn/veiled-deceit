@@ -10,11 +10,23 @@ var players_in_cave: Array = []
 var holy_symbol_scene: PackedScene = preload("res://scenes/holy_symbol.tscn")
 var alchemy_text_scene: PackedScene = preload("res://scenes/alchemy_text.tscn")
 
+# Key symbol/text tracking for the mystery
+var key_symbol_index: int = -1
+var key_text_index: int = -1
+
 func _ready() -> void:
 	# Connect area signals to detect players entering/exiting
 	if darkness_area:
 		darkness_area.body_entered.connect(_on_body_entered)
 		darkness_area.body_exited.connect(_on_body_exited)
+
+	# Wait a frame for CaveMysteryManager to be ready
+	await get_tree().process_frame
+
+	# Get the key symbol/text from mystery manager
+	if CaveMysteryManager:
+		key_symbol_index = CaveMysteryManager.get_key_symbol_index()
+		key_text_index = CaveMysteryManager.get_key_text_index()
 
 	# Spawn random holy symbols and alchemy texts on walls
 	_spawn_holy_symbols()
@@ -132,6 +144,22 @@ func _spawn_alchemy_texts() -> void:
 
 func _spawn_texts_on_wall(count: int, center: Vector3, spread: Vector3, forward: Vector3) -> void:
 	"""Spawn alchemy texts on a specific wall"""
+	# Calculate how many should be the key text (30-40% of total)
+	var key_text_count = int(count * randf_range(0.3, 0.4))
+	var texts_to_spawn = []
+
+	# Add key text indices
+	for i in range(key_text_count):
+		texts_to_spawn.append(key_text_index)
+
+	# Fill the rest with random text indices
+	for i in range(count - key_text_count):
+		var random_text = randi() % CaveMysteryManager.TEXT_INTERPRETATIONS.size()
+		texts_to_spawn.append(random_text)
+
+	# Shuffle so key texts are distributed randomly
+	texts_to_spawn.shuffle()
+
 	for i in range(count):
 		# Random position within spread area
 		var random_offset = Vector3(
@@ -148,6 +176,10 @@ func _spawn_texts_on_wall(count: int, center: Vector3, spread: Vector3, forward:
 		var random_scale = randf_range(0.8, 1.5)
 
 		var text = alchemy_text_scene.instantiate()
+
+		# Set the text index to use
+		if text.has_method("set_text_index"):
+			text.set_text_index(texts_to_spawn[i])
 
 		# Calculate rotation to face into the cave
 		var basis: Basis

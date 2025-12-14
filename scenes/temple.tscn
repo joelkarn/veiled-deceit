@@ -1,0 +1,56 @@
+[gd_scene load_steps=4 format=3 uid="uid://temple_scene"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_stone"]
+albedo_color = Color(0.6, 0.6, 0.7, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+material = SubResource("StandardMaterial3D_stone")
+size = Vector3(1, 5, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall"]
+size = Vector3(1, 5, 1)
+
+[node name="Temple" type="Node3D"]
+
+[node name="Floor" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+material_override = SubResource("StandardMaterial3D_stone")
+use_collision = true
+size = Vector3(20, 0.5, 20)
+
+[node name="WallNorth" type="MeshInstance3D" parent="."]
+transform = Transform3D(20, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -10)
+mesh = SubResource("BoxMesh_wall")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="WallNorth"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallNorth/StaticBody3D"]
+shape = SubResource("BoxShape3D_wall")
+
+[node name="WallSouth" type="MeshInstance3D" parent="."]
+transform = Transform3D(20, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 10)
+mesh = SubResource("BoxMesh_wall")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="WallSouth"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallSouth/StaticBody3D"]
+shape = SubResource("BoxShape3D_wall")
+
+[node name="WallWest" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 20, -10, 2.5, 0)
+mesh = SubResource("BoxMesh_wall")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="WallWest"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallWest/StaticBody3D"]
+shape = SubResource("BoxShape3D_wall")
+
+[node name="WallEast" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 20, 10, 2.5, 0)
+mesh = SubResource("BoxMesh_wall")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="WallEast"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallEast/StaticBody3D"]
+shape = SubResource("BoxShape3D_wall")
+

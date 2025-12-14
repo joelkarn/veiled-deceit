@@ -26,6 +26,8 @@ VoiceManager="*res://scripts/voice_manager.gd"
 QuestManager="*res://scripts/quest_manager.gd"
 NetworkManager="*uid://sta3v20ef3k8"
 HarvestUIManager="*uid://cr7xtg02fwnx1"
+CaveMysteryManager="*res://scripts/cave_mystery_manager.gd"
+CaveMysteryDebug="*res://scripts/cave_mystery_debug.gd"
 
 [display]
 

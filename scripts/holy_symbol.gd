@@ -10,6 +10,7 @@ var current_brightness: float = 0.0
 var symbol_material: ShaderMaterial
 var update_timer: float = 0.0
 var update_interval: float = 0.1  # Update 10 times per second for performance
+var symbol_index: int = -1  # Specific symbol index to use (-1 = random)
 
 const SYMBOL_FOLDER = "res://assets/textures/holy_symbols_folder/"
 
@@ -17,12 +18,17 @@ func _ready() -> void:
 	# Get list of all PNG files in the holy symbols folder
 	var symbol_textures = _get_symbol_textures()
 
-	# Pick a random texture
+	# Pick a random texture or use specific index
 	var random_texture: Texture2D = null
 	if symbol_textures.size() > 0:
-		randomize()
-		var random_index = randi() % symbol_textures.size()
-		random_texture = load(SYMBOL_FOLDER + symbol_textures[random_index])
+		if symbol_index >= 0 and symbol_index < symbol_textures.size():
+			# Use specific symbol
+			random_texture = load(SYMBOL_FOLDER + symbol_textures[symbol_index])
+		else:
+			# Random symbol
+			randomize()
+			var random_index = randi() % symbol_textures.size()
+			random_texture = load(SYMBOL_FOLDER + symbol_textures[random_index])
 
 	# Create shader material for the symbol
 	var shader = load("res://assets/shaders/holy_symbol.gdshader")
@@ -42,6 +48,10 @@ func _ready() -> void:
 	# Set render priority to draw on top of walls
 	transparency = 0.99  # Make slightly transparent to enable alpha blending
 	sorting_offset = 0.1  # Draw on top of geometry at same position
+
+func set_symbol_index(index: int) -> void:
+	"""Set a specific symbol index (must be called before _ready)"""
+	symbol_index = index
 
 func _get_symbol_textures() -> Array:
 	var textures = []

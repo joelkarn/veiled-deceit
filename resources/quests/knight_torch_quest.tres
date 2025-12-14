@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "knight_torch_quest"
+quest_name = "Light in the Darkness"
+description = "The Angel has bestowed upon you a sacred torch. Use it to illuminate the cave and reveal the hidden symbols inscribed upon its walls. The light will guide you to ancient truths."
+goal = 1
+current_progress = 0
+is_completed = false
+quest_type = 3

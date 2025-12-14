@@ -1556,8 +1556,16 @@ func _start_reading_book() -> void:
 
 	is_reading_book = true
 
-	# Show the book UI with the book data
-	book_ui.show_book(equipped_item_data)
+	# Check if this is the interpretation book (has "interpret" in item_id or name)
+	if equipped_item_data.item_id == "book" or "interpret" in equipped_item_data.item_id.to_lower():
+		# Show interpretation book
+		if book_ui.has_method("show_interpretation_book"):
+			book_ui.show_interpretation_book()
+		else:
+			book_ui.show_book(equipped_item_data)
+	else:
+		# Show regular book UI with the book data
+		book_ui.show_book(equipped_item_data)
 
 	# Track quest progress for reading the book (send to server for validation)
 	if multiplayer.is_server():

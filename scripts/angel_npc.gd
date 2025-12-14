@@ -13,7 +13,8 @@ class_name AngelNPC
 var class_quests: Dictionary = {
 	"Witch": "find_obelisk",
 	"Hunter": "kill_spiders",
-	"Knight": "kill_enemies"
+	"Knight": "knight_torch_quest",
+	"Priest": "priest_book_quest"
 }
 
 @onready var question_marker: Node3D = $QuestionMarker
