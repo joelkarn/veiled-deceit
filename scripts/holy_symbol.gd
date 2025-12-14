@@ -24,6 +24,10 @@ func _ready() -> void:
 		if symbol_index >= 0 and symbol_index < symbol_textures.size():
 			# Use specific symbol
 			random_texture = load(SYMBOL_FOLDER + symbol_textures[symbol_index])
+			# Log which symbol is being displayed
+			if symbol_index < CaveMysteryManager.SYMBOL_INTERPRETATIONS.size():
+				var symbol_name = CaveMysteryManager.SYMBOL_INTERPRETATIONS[symbol_index]["name"]
+				print("Holy symbol set to: ", symbol_name)
 		else:
 			# Random symbol
 			randomize()
@@ -68,6 +72,9 @@ func _get_symbol_textures() -> Array:
 			file_name = dir.get_next()
 
 		dir.list_dir_end()
+
+	# Sort alphabetically so indices are consistent across all instances
+	textures.sort()
 
 	return textures
 

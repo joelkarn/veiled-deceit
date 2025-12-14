@@ -133,7 +133,9 @@ func _process(delta: float) -> void:
 
 	# Smoothly transition brightness
 	current_brightness = lerp(current_brightness, target_brightness, fade_speed * delta * 10.0)
-	modulate.a = clamp(current_brightness * 0.5, 0.0, 1.0)
+	var alpha = clamp(current_brightness * 0.5, 0.0, 1.0)
+	modulate.a = alpha
+	outline_modulate.a = alpha * 0.8  # Outline slightly less visible
 
 func _find_nearest_light_distance() -> float:
 	var nearest = detection_range + 1.0

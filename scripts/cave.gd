@@ -56,6 +56,22 @@ func _spawn_holy_symbols() -> void:
 
 func _spawn_symbols_on_wall(count: int, center: Vector3, spread: Vector3, forward: Vector3) -> void:
 	"""Spawn symbols on a specific wall with random positions and sizes"""
+	# Calculate how many should be the key symbol (10-15% of total)
+	# Lower percentage since there are 67 symbols, making it subtle but noticeable
+	var key_symbol_count = int(count * randf_range(0.1, 0.15))
+	var symbols_to_spawn = []
+
+	# Add key symbol indices
+	for i in range(key_symbol_count):
+		symbols_to_spawn.append(key_symbol_index)
+
+	# Fill the rest with random symbol indices from all available symbols
+	for i in range(count - key_symbol_count):
+		var random_symbol = randi() % CaveMysteryManager.SYMBOL_INTERPRETATIONS.size()
+		symbols_to_spawn.append(random_symbol)
+
+	# Shuffle so key symbols are distributed randomly
+	symbols_to_spawn.shuffle()
 	var placed_positions: Array = []
 	var min_distance: float = 1.5  # Minimum distance between symbols to prevent overlap
 	var max_attempts: int = 50  # Max attempts to find non-overlapping position
@@ -101,6 +117,10 @@ func _spawn_symbols_on_wall(count: int, center: Vector3, spread: Vector3, forwar
 
 		var symbol = holy_symbol_scene.instantiate()
 
+		# Set the symbol index to use
+		if symbol.has_method("set_symbol_index"):
+			symbol.set_symbol_index(symbols_to_spawn[i])
+
 		# Calculate rotation to face into the cave (quad's -Z points along forward vector)
 		# Default quad faces -Z, we need to rotate it to match the forward direction
 		var basis: Basis
@@ -144,15 +164,16 @@ func _spawn_alchemy_texts() -> void:
 
 func _spawn_texts_on_wall(count: int, center: Vector3, spread: Vector3, forward: Vector3) -> void:
 	"""Spawn alchemy texts on a specific wall"""
-	# Calculate how many should be the key text (30-40% of total)
-	var key_text_count = int(count * randf_range(0.3, 0.4))
+	# Calculate how many should be the key text (10-15% of total)
+	# Same ratio as symbols for consistency
+	var key_text_count = int(count * randf_range(0.1, 0.15))
 	var texts_to_spawn = []
 
 	# Add key text indices
 	for i in range(key_text_count):
 		texts_to_spawn.append(key_text_index)
 
-	# Fill the rest with random text indices
+	# Fill with random text indices from all available texts
 	for i in range(count - key_text_count):
 		var random_text = randi() % CaveMysteryManager.TEXT_INTERPRETATIONS.size()
 		texts_to_spawn.append(random_text)
@@ -182,14 +203,20 @@ func _spawn_texts_on_wall(count: int, center: Vector3, spread: Vector3, forward:
 			text.set_text_index(texts_to_spawn[i])
 
 		# Calculate rotation to face into the cave
+		# Different rotation per wall - Label3D behaves differently than MeshInstance3D
 		var basis: Basis
 		if forward.x > 0:
-			basis = Basis(Vector3(0, 1, 0), -PI / 2.0)
+			# West wall at x=-44 - facing east (+X) into cave
+			# Try flipping: use positive PI/2 for Label3D
+			basis = Basis(Vector3(0, 1, 0), PI / 2.0)
 		elif forward.x < 0:
+			# East wall - facing west (-X)
 			basis = Basis(Vector3(0, 1, 0), PI / 2.0)
 		elif forward.z > 0:
+			# North wall - facing south (+Z)
 			basis = Basis()
 		elif forward.z < 0:
+			# South wall - facing north (-Z)
 			basis = Basis(Vector3(0, 1, 0), PI)
 
 		# Apply scale to basis

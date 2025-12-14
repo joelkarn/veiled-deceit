@@ -7,6 +7,7 @@ var is_menu_open := false
 var chest_ui: Control = null
 var angel_ui: Control = null
 var map_ui: Control = null
+var temple_name_input_ui: AcceptDialog = null
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -17,6 +18,9 @@ func _ready() -> void:
 
 	# Get map UI reference
 	map_ui = get_tree().current_scene.get_node_or_null("UILayers/MapUILayer/MapUI")
+
+	# Get temple name input UI reference
+	temple_name_input_ui = get_tree().current_scene.get_node_or_null("UILayers/TempleNameInputLayer/TempleNameInput")
 
 func _input(event: InputEvent) -> void:
 	# Don't process input if multiplayer is disconnected (prevents crashes during shutdown)
@@ -63,7 +67,7 @@ func close_menu() -> void:
 	menu_closed.emit()
 
 func is_menu_active() -> bool:
-	return is_menu_open or (chest_ui and chest_ui.visible) or (angel_ui and angel_ui.visible) or (map_ui and map_ui.visible)
+	return is_menu_open or (chest_ui and chest_ui.visible) or (angel_ui and angel_ui.visible) or (map_ui and map_ui.visible) or (temple_name_input_ui and temple_name_input_ui.visible)
 
 # Map UI management
 func toggle_map() -> void:
