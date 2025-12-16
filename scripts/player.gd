@@ -120,6 +120,13 @@ var is_reading_book: bool = false
 var torch_light: OmniLight3D = null
 var placed_torch_scene: PackedScene = preload("res://scenes/placed_torch.tscn")
 
+# Weapon model references (attached to BoneAttachment3D)
+var weapon_great_sword: Node3D = null
+var weapon_great_hammer: Node3D = null
+var weapon_great_staff: Node3D = null
+var weapon_longbow: Node3D = null
+var weapon_mysterious_book: Node3D = null
+
 # --------------------------
 # Debugging (hitbox visual)
 # --------------------------
@@ -184,6 +191,7 @@ func _ready() -> void:
 	_create_melee_debug_mesh()
 	_update_melee_debug_visual(false)
 	_create_debug_line()
+	_setup_weapon_models()
 
 	# Starting items removed - now given as quest rewards from Angel NPC
 	# if player_name == "Witch":
@@ -365,6 +373,7 @@ func _physics_process(delta: float) -> void:
 	if is_local_player:
 		_update_equipped_weapon()  # Check what weapon is equipped
 		_update_equipped_item()  # Check what item is equipped (for torch light)
+		_update_weapon_visibility()  # Update weapon model visibility
 		_update_melee_debug_visual(false)
 		_update_crosshair_visibility()
 		_update_staff_equipped()
@@ -783,6 +792,53 @@ func _update_torch_light() -> void:
 ## Update light when weapon changes (calls torch update)
 func _update_weapon_light() -> void:
 	_update_torch_light()
+
+## Setup weapon model references from BoneAttachment3D
+func _setup_weapon_models() -> void:
+	var bone_attachment = visuals.get_node_or_null("character/Armature/Skeleton3D/BoneAttachment3D")
+	if not bone_attachment:
+		print("Warning: BoneAttachment3D not found for weapon models")
+		return
+	
+	weapon_great_sword = bone_attachment.get_node_or_null("GreatSword")
+	weapon_great_hammer = bone_attachment.get_node_or_null("GreatHammer")
+	weapon_great_staff = bone_attachment.get_node_or_null("GreatStaff")
+	weapon_longbow = bone_attachment.get_node_or_null("Longbow")
+	weapon_mysterious_book = bone_attachment.get_node_or_null("MysteriousBook")
+
+## Update weapon model visibility based on equipped weapon/item
+func _update_weapon_visibility() -> void:
+	# Hide all weapons first
+	if weapon_great_sword:
+		weapon_great_sword.visible = false
+	if weapon_great_hammer:
+		weapon_great_hammer.visible = false
+	if weapon_great_staff:
+		weapon_great_staff.visible = false
+	if weapon_longbow:
+		weapon_longbow.visible = false
+	if weapon_mysterious_book:
+		weapon_mysterious_book.visible = false
+	
+	# Show the appropriate weapon based on what's equipped
+	if equipped_weapon_data:
+		if equipped_weapon_data is SwordData:
+			if weapon_great_sword:
+				weapon_great_sword.visible = true
+		elif equipped_weapon_data is HammerData:
+			if weapon_great_hammer:
+				weapon_great_hammer.visible = true
+		elif equipped_weapon_data is StaffData:
+			if weapon_great_staff:
+				weapon_great_staff.visible = true
+		elif equipped_weapon_data is BowData:
+			if weapon_longbow:
+				weapon_longbow.visible = true
+	
+	# Check for book (item, not weapon)
+	if equipped_item_data and equipped_item_data is BookData:
+		if weapon_mysterious_book:
+			weapon_mysterious_book.visible = true
 
 ## Place torch on the ground
 func _place_torch() -> void:
