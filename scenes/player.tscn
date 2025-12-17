@@ -27,7 +27,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.47219, 0)
 transform = Transform3D(1, 0, 0, 0, 1, 2.98023e-08, 0, -2.98023e-08, 1, 0, 0.793829, 5.41665)
 
 [node name="TorchLight" type="OmniLight3D" parent="camera_mount" unique_id=987654321]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 visible = false
 light_color = Color(1, 0.85, 0.6, 1)
 light_energy = 3.0

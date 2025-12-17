@@ -800,11 +800,17 @@ func _setup_weapon_models() -> void:
 		print("Warning: BoneAttachment3D not found for weapon models")
 		return
 	
-	weapon_great_sword = bone_attachment.get_node_or_null("GreatSword")
-	weapon_great_hammer = bone_attachment.get_node_or_null("GreatHammer")
-	weapon_great_staff = bone_attachment.get_node_or_null("GreatStaff")
-	weapon_longbow = bone_attachment.get_node_or_null("Longbow")
-	weapon_mysterious_book = bone_attachment.get_node_or_null("MysteriousBook")
+	# Get the Node3D child that contains all the weapon models
+	var weapon_container = bone_attachment.get_node_or_null("Node3D")
+	if not weapon_container:
+		print("Warning: Node3D container not found for weapon models")
+		return
+	
+	weapon_great_sword = weapon_container.get_node_or_null("GreatSword")
+	weapon_great_hammer = weapon_container.get_node_or_null("GreatHammer")
+	weapon_great_staff = weapon_container.get_node_or_null("GreatStaff")
+	weapon_longbow = weapon_container.get_node_or_null("Longbow")
+	weapon_mysterious_book = weapon_container.get_node_or_null("MysteriousBook")
 
 ## Update weapon model visibility based on equipped weapon/item
 func _update_weapon_visibility() -> void:
@@ -873,14 +879,14 @@ func _perform_melee_attack() -> void:
 	auto_attack_on_cooldown = true
 	already_hit.clear()
 
-	# Play Swing animation for melee attacks (sword, hammer) at 10x speed
+	# Play Swing animation for melee attacks (sword, hammer) at 3x speed
 	var swing_animation_length = 0.0
 	var original_speed_scale = 1.0
 	if animation_player and animation_player.has_animation("character_animations/Swing"):
 		# Store original speed scale
 		original_speed_scale = animation_player.speed_scale
-		# Set speed to 10x faster
-		animation_player.speed_scale = 10.0
+		# Set speed to 3x faster
+		animation_player.speed_scale = 3.0
 		animation_player.play("character_animations/Swing")
 		swing_animation_length = animation_player.get_animation("character_animations/Swing").length
 
@@ -891,10 +897,10 @@ func _perform_melee_attack() -> void:
 
 	# Wait for the Swing animation to complete (or at least most of it)
 	# This prevents movement animations from interrupting the attack animation
-	# Since animation plays 10x faster, divide the wait time by 10
+	# Since animation plays 3x faster, divide the wait time by 3
 	if swing_animation_length > 0.0:
-		# Wait for the animation to finish at 10x speed, but cap it at a reasonable max duration
-		var wait_time = min(swing_animation_length / 10.0, 0.1)  # Cap at 0.1 second max (since it's 10x faster)
+		# Wait for the animation to finish at 3x speed, but cap it at a reasonable max duration
+		var wait_time = min(swing_animation_length / 3.0, 0.1)  # Cap at 0.1 second max (since it's 3x faster)
 		await get_tree().create_timer(wait_time).timeout
 	else:
 		# Fallback: wait a reasonable time if we couldn't get animation length
@@ -1411,7 +1417,7 @@ func validate_client_position_state(state: Dictionary) -> void:
 		if animation_player.current_animation != client_animation:
 			# Set speed scale for Swing animation
 			if client_animation == "character_animations/Swing":
-				animation_player.speed_scale = 10.0
+				animation_player.speed_scale = 3.0
 			else:
 				animation_player.speed_scale = 1.0
 			animation_player.play(client_animation)
@@ -1453,8 +1459,8 @@ func _update_remote_player_visuals_and_animation(_delta: float) -> void:
 	# Check if attacking (Swing animation takes priority) - use synced animation if it's Swing
 	if current_synced_animation == "character_animations/Swing" and animation_player and animation_player.has_animation("character_animations/Swing"):
 		animation_to_play = "character_animations/Swing"
-		# Set speed to 10x faster for Swing
-		animation_player.speed_scale = 10.0
+		# Set speed to 3x faster for Swing
+		animation_player.speed_scale = 3.0
 	# Only use jump animation if actually in the air (check velocity.y, not is_on_floor which is unreliable for remote players)
 	# Check if moving upward (jumping) or falling (negative velocity.y means falling)
 	# Also validate that if synced animation is Jump, player must actually be in the air
@@ -1495,7 +1501,7 @@ func _update_remote_player_visuals_and_animation(_delta: float) -> void:
 		if animation_player.current_animation != animation_to_play and animation_player.has_animation(animation_to_play):
 			# Set speed scale for Swing animation
 			if animation_to_play == "character_animations/Swing":
-				animation_player.speed_scale = 10.0
+				animation_player.speed_scale = 3.0
 			else:
 				animation_player.speed_scale = 1.0
 			animation_player.play(animation_to_play)
@@ -1542,9 +1548,9 @@ func _interpolate_remote_player(delta: float) -> void:
 	# Use synced animation if available and valid
 	if target_animation != "" and animation_player and animation_player.has_animation(target_animation):
 		animation_to_play = target_animation
-		# If it's the Swing animation, set speed to 10x faster
+		# If it's the Swing animation, set speed to 3x faster
 		if target_animation == "character_animations/Swing":
-			animation_player.speed_scale = 10.0
+			animation_player.speed_scale = 3.0
 		else:
 			animation_player.speed_scale = 1.0
 	# Otherwise infer from state
@@ -1576,7 +1582,7 @@ func _interpolate_remote_player(delta: float) -> void:
 		if animation_player.current_animation != animation_to_play and animation_player.has_animation(animation_to_play):
 			# Set speed scale for Swing animation
 			if animation_to_play == "character_animations/Swing":
-				animation_player.speed_scale = 10.0
+				animation_player.speed_scale = 3.0
 			else:
 				animation_player.speed_scale = 1.0
 			animation_player.play(animation_to_play)
