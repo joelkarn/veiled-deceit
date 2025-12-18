@@ -491,7 +491,8 @@ func process_movement(delta: float) -> void:
 	# If on the floor, allow horizontal movement
 	is_jumping = false
 	# Animate and set velocity
-	# Don't override attack animations - let them play through
+	# Don't override attack animations during auto_attack_active - let swing play fully
+	# Movement can override after swing completes (when auto_attack_active becomes false)
 	if not auto_attack_active:
 		if direction != Vector3.ZERO:
 			# Check if moving backward (S or down arrow pressed)
@@ -511,6 +512,7 @@ func process_movement(delta: float) -> void:
 				# Rotate visuals to face movement direction
 				visuals.look_at(position + direction)
 		else:
+			# Play idle when not moving and not attacking
 			if animation_player and animation_player.current_animation != "character_animations/Idle":
 				animation_player.play("character_animations/Idle")
 	
@@ -895,21 +897,22 @@ func _perform_melee_attack() -> void:
 	await get_tree().create_timer(AUTO_ATTACK_WINDOW_SECONDS).timeout
 	_enable_melee_area(false)
 
-	# Wait for the Swing animation to complete (or at least most of it)
-	# This prevents movement animations from interrupting the attack animation
-	# Since animation plays 3x faster, divide the wait time by 3
+	# Wait for the Swing animation to complete fully at 3x speed
+	# This keeps auto_attack_active true so movement can't interrupt during the attack
+	# Since animation plays at 3x speed, divide the wait time by 3
 	if swing_animation_length > 0.0:
-		# Wait for the animation to finish at 3x speed, but cap it at a reasonable max duration
-		var wait_time = min(swing_animation_length / 3.0, 0.1)  # Cap at 0.1 second max (since it's 3x faster)
+		# Wait for the full animation to finish at 3x speed
+		var wait_time = swing_animation_length / 3.0
 		await get_tree().create_timer(wait_time).timeout
 	else:
 		# Fallback: wait a reasonable time if we couldn't get animation length
-		await get_tree().create_timer(0.05).timeout  # 0.5 / 10 = 0.05 seconds
+		await get_tree().create_timer(0.2).timeout
 	
 	# Reset speed scale back to original
 	if animation_player:
 		animation_player.speed_scale = original_speed_scale
 
+	# Now allow movement to override (auto_attack_active becomes false)
 	auto_attack_active = false
 
 	# Cooldown timer before next attack allowed
